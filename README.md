@@ -111,7 +111,7 @@ Flows are stored in `~/.config/flow/<name>.json`:
 ## Uninstall
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Rehanasharmin/Progflow/main/uninstall.sh | sh
+curl -sSL https://raw.githubusercontent.com/Rehanasharmin/Progflow/refs/heads/master/uninstall.sh | sh
 ```
 
 ---
