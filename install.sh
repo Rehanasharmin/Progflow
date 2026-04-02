@@ -7,7 +7,7 @@
 # It will either use an existing binary or clone and build from source
 #
 
-set -euo pipefail
+set -eo pipefail
 
 # Configuration
 PROGRAM_NAME="progflow"

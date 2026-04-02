@@ -4,7 +4,7 @@
 # Removes progflow and optionally its configuration
 #
 
-set -euo pipefail
+set -eo pipefail
 
 PROGRAM_NAME="progflow"
 INSTALL_DIRS=("/usr/local/bin" "$HOME/.local/bin")
