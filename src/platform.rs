@@ -32,25 +32,28 @@ pub fn spawn_url(url: &str) {
 }
 
 fn spawn_url_termux(url: &str) {
-    let result = Command::new("termux-open-url").arg(url).spawn();
-
-    match result {
-        Ok(_child) => {}
-        Err(e) => {
-            eprintln!("Warning: termux-open-url failed: {}", e);
-            eprintln!("Hint: Make sure you have a browser installed in Termux");
+    if let Ok(output) = Command::new("termux-open-url").arg(url).output() {
+        if output.status.success() {
+            return;
         }
     }
+
+    if let Ok(output) = Command::new("am")
+        .args(&["start", "-a", "android.intent.action.VIEW", "-d", url])
+        .output()
+    {
+        if output.status.success() {
+            return;
+        }
+    }
+
+    eprintln!("Warning: Failed to open URL: {}", url);
+    eprintln!("Hint: Install a browser or open URLs manually");
 }
 
 fn spawn_url_linux(url: &str) {
     let openers = [
-        "xdg-open",
-        "gio open",
-        "gnome-open",
-        "firefox",
-        "chromium",
-        "brave",
+        "xdg-open", "gio open", "firefox", "chromium", "brave", "xdg-open",
     ];
 
     for opener in openers {
