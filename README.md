@@ -9,7 +9,7 @@ progflow lets you define "flows" - workspace configurations that automatically l
 ## Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/YOUR_USERNAME/progflow/main/install.sh | sh
+curl -sSL https://raw.githubusercontent.com/Rehanasharmin/Progflow/main/install.sh | sh
 ```
 
 ## Quick Start
@@ -111,7 +111,7 @@ Flows are stored in `~/.config/flow/<name>.json`:
 ## Uninstall
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/YOUR_USERNAME/progflow/main/uninstall.sh | sh
+curl -sSL https://raw.githubusercontent.com/Rehanasharmin/Progflow/main/uninstall.sh | sh
 ```
 
 ---

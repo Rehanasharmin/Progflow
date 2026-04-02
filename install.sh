@@ -11,7 +11,7 @@ set -euo pipefail
 
 # Configuration
 PROGRAM_NAME="progflow"
-REPO_URL="https://github.com/anomalyco/progflow.git"
+REPO_URL="https://github.com/Rehanasharmin/Progflow.git"
 INSTALL_DIRS=("/usr/local/bin" "$HOME/.local/bin")
 CONFIG_DIR="$HOME/.config/flow"
 REQUIRED_RUST_VERSION="1.70"
