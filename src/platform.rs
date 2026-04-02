@@ -24,15 +24,43 @@ fn is_termux_impl() -> bool {
 }
 
 pub fn spawn_url(url: &str) {
-    let cmd = if is_termux() {
-        "termux-open-url"
+    if is_termux() {
+        spawn_url_termux(url);
     } else {
-        "xdg-open"
-    };
-
-    if let Err(e) = Command::new(cmd).arg(url).spawn() {
-        eprintln!("Warning: Failed to open {}: {}", url, e);
+        spawn_url_linux(url);
     }
+}
+
+fn spawn_url_termux(url: &str) {
+    let result = Command::new("termux-open-url").arg(url).spawn();
+
+    match result {
+        Ok(_child) => {}
+        Err(e) => {
+            eprintln!("Warning: termux-open-url failed: {}", e);
+            eprintln!("Hint: Make sure you have a browser installed in Termux");
+        }
+    }
+}
+
+fn spawn_url_linux(url: &str) {
+    let openers = [
+        "xdg-open",
+        "gio open",
+        "gnome-open",
+        "firefox",
+        "chromium",
+        "brave",
+    ];
+
+    for opener in openers {
+        if Command::new(opener).arg(url).spawn().is_ok() {
+            return;
+        }
+    }
+
+    eprintln!("Warning: Failed to open URL: {}", url);
+    eprintln!("Hint: Install xdg-utils: sudo apt install xdg-utils");
 }
 
 pub fn get_editor() -> Option<String> {
