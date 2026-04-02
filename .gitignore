@@ -1,0 +1,20 @@
+# Build output
+/target/
+**/target/
+
+# Rust
+**/*.rs.bk
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config (user-specific)
+.config/
