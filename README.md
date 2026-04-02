@@ -9,7 +9,7 @@ progflow lets you define "flows" - workspace configurations that automatically l
 ## Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Rehanasharmin/Progflow/main/install.sh | sh
+curl -sSL https://raw.githubusercontent.com/Rehanasharmin/Progflow/refs/heads/master/install.sh | sh
 ```
 
 ## Quick Start
