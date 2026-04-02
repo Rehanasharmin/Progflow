@@ -23,6 +23,7 @@ pub fn run(name: &str) -> Result<(), AppError> {
     if let Some(ref editor_cmd) = config.editor_cmd {
         let mut cmd = Command::new("sh");
         cmd.arg("-c").arg(editor_cmd).current_dir(work_dir);
+        cmd.stdin(std::process::Stdio::null());
 
         apply_env(&mut cmd, &config.env);
 

@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 
 use crate::config::{get_config_path, save_config, FlowConfig};
 use crate::error::AppError;
@@ -11,6 +11,16 @@ pub fn run(name: &str) -> Result<(), AppError> {
         return Err(AppError::User(format!("Flow '{}' already exists", name)));
     }
 
+    let is_interactive = io::stdin().is_terminal();
+
+    if is_interactive {
+        run_interactive(name)
+    } else {
+        run_non_interactive(name)
+    }
+}
+
+fn run_interactive(name: &str) -> Result<(), AppError> {
     println!("Creating new flow '{}'", name);
 
     print!("Working directory (optional, press Enter to skip): ");
@@ -27,7 +37,7 @@ pub fn run(name: &str) -> Result<(), AppError> {
         Some(directory.trim().to_string())
     };
 
-    print!("Editor command (optional, e.g. 'nvim .'): ");
+    print!("Editor command (optional, e.g. 'vim .'): ");
     io::stdout()
         .flush()
         .map_err(|e| AppError::Io("stdout".to_string(), e))?;
@@ -114,6 +124,25 @@ pub fn run(name: &str) -> Result<(), AppError> {
     save_config(&config)?;
 
     println!("✓ flow '{}' created", name);
+
+    Ok(())
+}
+
+fn run_non_interactive(name: &str) -> Result<(), AppError> {
+    let config = FlowConfig {
+        name: name.to_string(),
+        directory: None,
+        editor_cmd: None,
+        url_list: None,
+        shell: "/bin/sh".to_string(),
+        env: HashMap::new(),
+        note: String::new(),
+    };
+
+    save_config(&config)?;
+
+    println!("✓ flow '{}' created (non-interactive mode)", name);
+    println!("  Use 'progflow edit {}' to configure", name);
 
     Ok(())
 }

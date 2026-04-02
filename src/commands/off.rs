@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 
 use crate::config::{delete_lock_file, find_active_flow, load_config, read_lock_file, save_config};
 use crate::error::AppError;
@@ -36,30 +36,34 @@ pub fn run(name: Option<&str>) -> Result<(), AppError> {
         }
     }
 
-    print!("Save a context note? [y/N]: ");
-    io::stdout()
-        .flush()
-        .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+    let is_interactive = io::stdin().is_terminal();
 
-    let mut input = String::new();
-    io::stdin()
-        .read_line(&mut input)
-        .map_err(|e| AppError::Io("stdin".to_string(), e))?;
-
-    if input.trim().to_lowercase() == "y" {
-        print!("Enter note: ");
+    if is_interactive {
+        print!("Save a context note? [y/N]: ");
         io::stdout()
             .flush()
             .map_err(|e| AppError::Io("stdout".to_string(), e))?;
 
-        let mut note = String::new();
+        let mut input = String::new();
         io::stdin()
-            .read_line(&mut note)
+            .read_line(&mut input)
             .map_err(|e| AppError::Io("stdin".to_string(), e))?;
 
-        let mut config = load_config(&name)?;
-        config.note = note.trim().to_string();
-        save_config(&config)?;
+        if input.trim().to_lowercase() == "y" {
+            print!("Enter note: ");
+            io::stdout()
+                .flush()
+                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+
+            let mut note = String::new();
+            io::stdin()
+                .read_line(&mut note)
+                .map_err(|e| AppError::Io("stdin".to_string(), e))?;
+
+            let mut config = load_config(&name)?;
+            config.note = note.trim().to_string();
+            save_config(&config)?;
+        }
     }
 
     delete_lock_file(&name)?;
