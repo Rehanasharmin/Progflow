@@ -6,13 +6,18 @@ use crate::config::{load_config, write_lock_file};
 use crate::error::AppError;
 use crate::platform::spawn_url;
 
-pub fn run(name: &str) -> Result<(), AppError> {
+pub fn run(name: &str, verbose: bool) -> Result<(), AppError> {
     let config = load_config(name)?;
+
+    config.validate()?;
 
     if let Some(ref dir) = config.directory {
         let path = Path::new(dir);
         if !path.exists() {
-            return Err(AppError::User(format!("Directory does not exist: {}", dir)));
+            return Err(AppError::with_suggestion(
+                &format!("Directory does not exist: {}", dir),
+                "Run 'progflow edit {name}' to update the directory path",
+            ));
         }
     }
 
@@ -21,6 +26,9 @@ pub fn run(name: &str) -> Result<(), AppError> {
     let work_dir = config.directory.as_deref().unwrap_or(".");
 
     if let Some(ref editor_cmd) = config.editor_cmd {
+        if verbose {
+            eprintln!("Spawning editor: {}", editor_cmd);
+        }
         let mut cmd = Command::new("sh");
         cmd.arg("-c").arg(editor_cmd).current_dir(work_dir);
         cmd.stdin(std::process::Stdio::null());
@@ -39,6 +47,9 @@ pub fn run(name: &str) -> Result<(), AppError> {
 
     if let Some(ref urls) = config.url_list {
         for url in urls {
+            if verbose {
+                eprintln!("Opening URL: {}", url);
+            }
             spawn_url(url);
         }
     }

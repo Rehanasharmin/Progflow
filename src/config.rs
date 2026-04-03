@@ -27,6 +27,36 @@ fn default_shell() -> String {
     "/bin/sh".to_string()
 }
 
+impl FlowConfig {
+    pub fn validate(&self) -> Result<(), AppError> {
+        if self.name.is_empty() {
+            return Err(AppError::Config("Flow name cannot be empty".to_string()));
+        }
+
+        if self.name.contains('/') || self.name.contains('\\') {
+            return Err(AppError::Config(
+                "Flow name cannot contain / or \\".to_string(),
+            ));
+        }
+
+        if let Some(ref dir) = self.directory {
+            if dir.is_empty() {
+                return Err(AppError::Config("Directory cannot be empty".to_string()));
+            }
+        }
+
+        if let Some(ref cmd) = self.editor_cmd {
+            if cmd.is_empty() {
+                return Err(AppError::Config(
+                    "Editor command cannot be empty".to_string(),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+}
+
 pub fn get_config_dir() -> Result<PathBuf, AppError> {
     let dir = dirs::config_dir()
         .ok_or_else(|| AppError::User("Could not find config directory".to_string()))?

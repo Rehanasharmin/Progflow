@@ -1,9 +1,10 @@
 use std::io::{self, IsTerminal, Write};
+use std::process::Command;
 
 use crate::config::{delete_lock_file, find_active_flow, load_config, read_lock_file, save_config};
 use crate::error::AppError;
 
-pub fn run(name: Option<&str>) -> Result<(), AppError> {
+pub fn run(name: Option<&str>, verbose: bool) -> Result<(), AppError> {
     let name = match name {
         Some(n) => n.to_string(),
         None => match find_active_flow()? {
@@ -23,15 +24,32 @@ pub fn run(name: Option<&str>) -> Result<(), AppError> {
         Err(e) => return Err(e),
     };
 
+    if verbose {
+        eprintln!("Terminating {} processes", lock.pids.len());
+    }
+
     for pid in &lock.pids {
-        unsafe {
-            let result = libc::kill(*pid as libc::pid_t, libc::SIGTERM);
-            if result != 0 && io::Error::last_os_error().raw_os_error() != Some(3) {
-                eprintln!(
-                    "Warning: Failed to send SIGTERM to PID {}: {}",
-                    pid,
-                    io::Error::last_os_error()
-                );
+        if verbose {
+            eprintln!("Sending SIGTERM to PID {}", pid);
+        }
+        let output = Command::new("kill")
+            .arg("-TERM")
+            .arg(pid.to_string())
+            .output();
+
+        match output {
+            Ok(out) if out.status.success() => {}
+            Ok(out) => {
+                let code = out.status.code().unwrap_or(-1);
+                if code != 3 {
+                    eprintln!(
+                        "Warning: Failed to terminate process {}: exit code {}",
+                        pid, code
+                    );
+                }
+            }
+            Err(e) => {
+                eprintln!("Warning: Failed to terminate PID {}: {}", pid, e);
             }
         }
     }
@@ -61,7 +79,8 @@ pub fn run(name: Option<&str>) -> Result<(), AppError> {
                 .map_err(|e| AppError::Io("stdin".to_string(), e))?;
 
             let mut config = load_config(&name)?;
-            config.note = note.trim().to_string();
+            let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
+            config.note = format!("[{}] {}", timestamp, note.trim());
             save_config(&config)?;
         }
     }
