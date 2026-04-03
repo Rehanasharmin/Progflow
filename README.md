@@ -1,10 +1,14 @@
 # progflow
 
-A context-aware workspace manager for Linux.
+A context-aware workspace manager for Linux and Termux.
 
 ## What is it?
 
-progflow lets you define "flows" - workspace configurations that automatically launch your editor, open URLs, and set up your environment with a single command. When you stop a flow, it saves your context as a note for next time. here is our DOCUMENTATION:[Progflow Documentation](https://www.mintlify.com/Rehanasharmin/Progflow)
+progflow is a powerful CLI tool that streamlines your development workflow by managing workspace configurations called "flows". Each flow encapsulates your project environment—launching your preferred editor, opening relevant URLs, and setting custom environment variables—everything you need to start working instantly.
+
+When you stop a flow, progflow automatically prompts you to save a context note, preserving your progress and thoughts for your next session. This makes it effortless to switch between projects without losing track of where you left off.
+
+Whether you're managing multiple projects, diving into documentation, or tracking your debugging sessions, progflow keeps everything organized and accessible with a single command.
 
 ## Installation
 
@@ -83,14 +87,52 @@ progflow new termux-work
 
 ## Commands
 
+progflow provides six intuitive commands to manage your workspace flows:
+
 | Command | Description |
 |---------|-------------|
-| `progflow on <name>` | Activate a flow |
-| `progflow off [name]` | Deactivate flow (saves note) |
-| `progflow list` | List all flows |
-| `progflow new <name>` | Create new flow |
-| `progflow edit <name>` | Edit config in $EDITOR |
-| `progflow note <name>` | View flow's saved note |
+| `progflow on <name>` | Activate a flow and launch all configured processes |
+| `progflow off [name]` | Deactivate the current or specified flow |
+| `progflow list` | Display all configured flows |
+| `progflow new <name>` | Create a new flow with interactive prompts |
+| `progflow edit <name>` | Open the flow's configuration in your preferred editor |
+| `progflow note <name>` | Retrieve and display the saved context note |
+
+### Command Details
+
+#### `progflow on <name>`
+Activates a workspace flow by:
+- Verifying the configured directory exists
+- Spawning the specified editor in the background
+- Opening all configured URLs in your default browser (or Termux browser)
+- Writing process IDs to a lockfile for cleanup
+- Displaying a summary of launched components
+
+#### `progflow off [name]`
+Deactivates a flow by:
+- Automatically detecting the active flow if no name provided
+- Reading process IDs from the lockfile
+- Sending SIGTERM to all tracked processes
+- Prompting to save a context note (interactive mode)
+- Cleaning up the lockfile
+- Printing confirmation message
+
+#### `progflow list`
+Lists all configured flows by scanning the config directory and displaying flow names in alphabetical order.
+
+#### `progflow new <name>`
+Creates a new flow through an interactive questionnaire that collects:
+- Working directory path
+- Editor command to launch
+- Comma-separated list of URLs
+- Shell interpreter to use
+- Environment variables in KEY=VALUE format
+
+#### `progflow edit <name>`
+Opens the flow's JSON configuration file in the editor specified by `$EDITOR` or `$VISUAL` environment variables.
+
+#### `progflow note <name>`
+Displays the saved context note for a flow, or indicates "(no note saved)" if empty.
 
 ## Configuration
 
@@ -108,6 +150,18 @@ Flows are stored in `~/.config/flow/<name>.json`:
 }
 ```
 
+### Configuration Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Unique identifier matching the filename |
+| `directory` | string | No | Working directory for spawned processes |
+| `editorCmd` | string | No | Command to launch your preferred editor |
+| `urlList` | array | No | List of URLs to open automatically |
+| `shell` | string | No | Shell interpreter (default: /bin/sh) |
+| `env` | object | No | Environment variables as key-value pairs |
+| `note` | string | No | Context note saved when stopping the flow |
+
 ## Uninstall
 
 ```bash
@@ -118,43 +172,107 @@ curl -sSL https://raw.githubusercontent.com/Rehanasharmin/Progflow/master/uninst
 
 ## For Developers
 
+### Overview
+
+progflow is built in Rust with a focus on simplicity, performance, and portability. The architecture follows a modular design pattern with clear separation of concerns between CLI handling, configuration management, and platform-specific functionality.
+
 ### Requirements
-- Rust 1.70+
-- `build-essential`
 
-### Build
+- **Rust 1.70+** - The Rust toolchain must be installed on your system
+- **Build tools** - `build-essential` on Debian/Ubuntu, or equivalent for your distribution
+- **Git** - For cloning the repository during installation
+
+### Building from Source
+
+Clone the repository and build the release binary:
+
 ```bash
+git clone https://github.com/Rehanasharmin/Progflow.git
+cd Progflow
 cargo build --release
-./target/release/progflow --help
 ```
 
-### Install during development
+The compiled binary will be located at `target/release/progflow`.
+
+### Installing During Development
+
+For local testing and development:
+
 ```bash
+# Copy to your local bin directory
 cp target/release/progflow ~/.local/bin/
+
+# Or add the binary to your PATH
+export PATH="$PWD:$PATH"
 ```
 
-### Project Structure
+Verify the installation:
+
+```bash
+progflow --version
+progflow --help
+```
+
+### Project Architecture
+
 ```
 src/
-├── main.rs          # CLI entry (clap)
-├── config.rs        # FlowConfig, lockfile I/O
-├── error.rs         # AppError enum
-├── platform.rs      # is_termux(), URL opener
+├── main.rs          # CLI entry point using clap for argument parsing
+├── config.rs        # FlowConfig struct, file I/O, lockfile management
+├── error.rs         # Custom error types for robust error handling
+├── platform.rs      # Platform detection and URL opening utilities
 └── commands/
-    ├── on.rs        # progflow on
-    ├── off.rs       # progflow off  
-    ├── list.rs      # progflow list
-    ├── edit.rs      # progflow edit
-    ├── new.rs       # progflow new
-    └── note.rs      # progflow note
+    ├── mod.rs       # Command module exports
+    ├── on.rs        # Implementation of the 'on' command
+    ├── off.rs       # Implementation of the 'off' command
+    ├── list.rs      # Implementation of the 'list' command
+    ├── edit.rs      # Implementation of the 'edit' command
+    ├── new.rs       # Implementation of the 'new' command
+    └── note.rs      # Implementation of the 'note' command
 ```
 
-### Design Notes
-- No async: blocking I/O for smaller binary
-- Platform detection: `$PREFIX` or `termux-open-url` presence
-- Lockfiles: PIDs in `~/.config/flow/<name>.lock`
-- Exit codes: 1=user error, 2=IO/JSON error
+### Design Philosophy
+
+- **No Async Runtime** - Uses blocking I/O throughout for minimal binary size and reduced complexity
+- **Zero Dependencies** - Single static binary with no runtime requirements beyond the standard library
+- **Cross-Platform** - Seamlessly works on Linux desktop and Termux on Android
+- **Portable** - Configuration stored in XDG-compliant directory (`~/.config/flow/`)
+
+### Platform Detection
+
+The tool automatically detects Termux environments by checking:
+1. The `$PREFIX` environment variable for `/data/data/com.termux`
+2. The presence of `termux-open-url` in PATH
+
+This enables Termux-specific URL opening behavior (using `termux-open-url` or `am start`) while defaulting to `xdg-open` on Linux systems.
+
+### Lockfile Mechanism
+
+When a flow is activated, process IDs are stored in `~/.config/flow/<name>.lock`. This enables proper cleanup when the flow is deactivated, ensuring no orphaned processes remain.
+
+### Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | User error (invalid arguments, missing config) |
+| 2 | I/O or JSON parsing error |
+
+### Contributing
+
+Contributions are welcome! Please ensure:
+- Code follows Rust conventions and style
+- All tests pass before submitting pull requests
+- Binary builds without warnings on stable Rust
+
+### Documentation
+
+For detailed API documentation and advanced usage, visit: **[progflow Documentation](https://www.mintlify.com/Rehanasharmin/Progflow)**
 
 ## License
 
-MIT
+MIT License - See the LICENSE file for details.
+
+---
+
+Built with Rust for performance and portability.
