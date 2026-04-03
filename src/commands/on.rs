@@ -32,6 +32,7 @@ pub fn run(name: &str, verbose: bool) -> Result<(), AppError> {
         let mut cmd = Command::new("sh");
         cmd.arg("-c").arg(editor_cmd).current_dir(work_dir);
         cmd.stdin(std::process::Stdio::null());
+        cmd.stderr(std::process::Stdio::null());
 
         apply_env(&mut cmd, &config.env);
 

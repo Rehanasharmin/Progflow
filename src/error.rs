@@ -41,8 +41,4 @@ impl AppError {
     pub fn with_suggestion(msg: &str, suggestion: &str) -> Self {
         AppError::User(format!("{}. {}", msg, suggestion))
     }
-
-    pub fn is_user_error(&self) -> bool {
-        matches!(self, AppError::User(_))
-    }
 }
