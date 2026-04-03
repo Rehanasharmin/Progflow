@@ -1,6 +1,12 @@
-# progflow
+# Progflow - Context-Aware Workspace Manager
 
-A context-aware workspace manager for Linux and Termux.
+[![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange)](https://www.rust-lang.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](https://opensource.org/licenses/MIT)
+[![GitHub release](https://img.shields.io/github/v/release/Rehanasharmin/Progflow)](https://github.com/Rehanasharmin/Progflow/releases)
+
+A powerful **CLI tool** for managing development workflows on Linux and Termux. Organize your projects, launch your editor and browsers instantly, and never lose track of your context.
+
+**Use cases:** Workspace management, project switching, development environment automation, context notes, productivity tool for developers.
 
 ## What is it?
 
@@ -14,6 +20,14 @@ Whether you're managing multiple projects, diving into documentation, or trackin
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/Rehanasharmin/Progflow/master/install.sh | bash
+```
+
+Or build from source:
+```bash
+git clone https://github.com/Rehanasharmin/Progflow.git
+cd Progflow
+cargo build --release
+cp target/release/progflow ~/.local/bin/
 ```
 
 ## Quick Start
@@ -87,7 +101,18 @@ progflow new termux-work
 
 ## Commands
 
-progflow provides six intuitive commands to manage your workspace flows:
+Progflow provides commands to manage your workspace flows:
+
+| Command | Description |
+|---------|-------------|
+| `progflow on <name>` | Activate a workspace flow |
+| `progflow off [name]` | Deactivate the current or specified flow |
+| `progflow list` | Display all configured flows |
+| `progflow new <name>` | Create a new flow |
+| `progflow edit <name>` | Open the flow's config in $EDITOR |
+| `progflow note <name>` | View the saved context note |
+| `progflow status` | Show active flow and last note |
+| `progflow delete <name>` | Delete a flow (with confirmation) |
 
 | Command | Description |
 |---------|-------------|
