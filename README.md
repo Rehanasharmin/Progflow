@@ -1,10 +1,10 @@
 # progflow
 
-A context-aware workspace manager for Linux and Termux.
+A context-aware workspace manager for Linux.
 
 ## What is it?
 
-progflow lets you define "flows" - workspace configurations that automatically launch your editor, open URLs, and set up your environment with a single command. When you stop a flow, it saves your context as a note for next time.
+progflow lets you define "flows" - workspace configurations that automatically launch your editor, open URLs, and set up your environment with a single command. When you stop a flow, it saves your context as a note for next time. here is our DOCUMENTATION:[Progflow Documentation](https://www.mintlify.com/Rehanasharmin/Progflow)
 
 ## Installation
 
