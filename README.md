@@ -2,7 +2,6 @@
 
 [![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](https://opensource.org/licenses/MIT)
-[![GitHub release](https://img.shields.io/github/v/release/Rehanasharmin/Progflow)](https://github.com/Rehanasharmin/Progflow/releases)
 
 A powerful **CLI tool** for managing development workflows on Linux and Termux. Organize your projects, launch your editor and browsers instantly, and never lose track of your context.
 
@@ -113,15 +112,6 @@ Progflow provides commands to manage your workspace flows:
 | `progflow note <name>` | View the saved context note |
 | `progflow status` | Show active flow and last note |
 | `progflow delete <name>` | Delete a flow (with confirmation) |
-
-| Command | Description |
-|---------|-------------|
-| `progflow on <name>` | Activate a flow and launch all configured processes |
-| `progflow off [name]` | Deactivate the current or specified flow |
-| `progflow list` | Display all configured flows |
-| `progflow new <name>` | Create a new flow with interactive prompts |
-| `progflow edit <name>` | Open the flow's configuration in your preferred editor |
-| `progflow note <name>` | Retrieve and display the saved context note |
 
 ### Command Details
 
