@@ -4,7 +4,7 @@ use std::process::Command;
 use crate::config::{delete_lock_file, find_active_flow, load_config, read_lock_file, save_config};
 use crate::error::AppError;
 
-pub fn run(name: Option<&str>, verbose: bool) -> Result<(), AppError> {
+pub fn run(name: Option<&str>, force: bool, verbose: bool) -> Result<(), AppError> {
     let name = match name {
         Some(n) => n.to_string(),
         None => match find_active_flow()? {
@@ -54,7 +54,7 @@ pub fn run(name: Option<&str>, verbose: bool) -> Result<(), AppError> {
         }
     }
 
-    let is_interactive = io::stdin().is_terminal();
+    let is_interactive = io::stdin().is_terminal() && !force;
 
     if is_interactive {
         print!("Save a context note? [y/N]: ");

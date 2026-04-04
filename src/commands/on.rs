@@ -16,7 +16,7 @@ pub fn run(name: &str, verbose: bool) -> Result<(), AppError> {
         if !path.exists() {
             return Err(AppError::with_suggestion(
                 &format!("Directory does not exist: {}", dir),
-                "Run 'progflow edit {name}' to update the directory path",
+                &format!("Run 'progflow edit {}' to update the directory path", name),
             ));
         }
     }
@@ -48,6 +48,9 @@ pub fn run(name: &str, verbose: bool) -> Result<(), AppError> {
 
     if let Some(ref urls) = config.url_list {
         for url in urls {
+            if url.is_empty() {
+                continue;
+            }
             if verbose {
                 eprintln!("Opening URL: {}", url);
             }

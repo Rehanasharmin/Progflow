@@ -27,7 +27,11 @@ enum Commands {
     #[command(about = "Activate a named workspace flow")]
     On { name: String },
     #[command(about = "Deactivate current or named flow")]
-    Off { name: Option<String> },
+    Off {
+        name: Option<String>,
+        #[arg(short, long, help = "Skip saving note prompt")]
+        force: bool,
+    },
     #[command(about = "List all configured flows")]
     List {
         #[arg(short, long, help = "Output as JSON")]
@@ -54,7 +58,7 @@ fn main() -> ExitCode {
 
     let result = match cli.command {
         Commands::On { name } => on::run(&name, cli.verbose),
-        Commands::Off { name } => off::run(name.as_deref(), cli.verbose),
+        Commands::Off { name, force } => off::run(name.as_deref(), force, cli.verbose),
         Commands::List { json } => list::run(json),
         Commands::Edit { name } => edit::run(&name),
         Commands::New { name } => new::run(&name),

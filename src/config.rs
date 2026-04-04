@@ -53,8 +53,30 @@ impl FlowConfig {
             }
         }
 
+        if let Some(ref urls) = self.url_list {
+            for url in urls {
+                if !url.is_empty() && !is_valid_url(url) {
+                    return Err(AppError::Config(format!("Invalid URL: {}", url)));
+                }
+            }
+        }
+
         Ok(())
     }
+}
+
+fn is_valid_url(url: &str) -> bool {
+    if url.starts_with("http://")
+        || url.starts_with("https://")
+        || url.starts_with("file://")
+        || url.starts_with("ftp://")
+    {
+        return true;
+    }
+    if url.starts_with("localhost") || url.starts_with("127.0.0.1") || url.starts_with("0.0.0.0") {
+        return true;
+    }
+    false
 }
 
 pub fn get_config_dir() -> Result<PathBuf, AppError> {
