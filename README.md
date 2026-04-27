@@ -3,6 +3,8 @@
 [![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](https://opensource.org/licenses/MIT)
 
+🌐 Website: [progflowcli.netlify.app](https://progflowcli.netlify.app)
+
 A powerful **CLI tool** for managing development workflows on Linux and Termux. Organize your projects, launch your editor and browsers instantly, and never lose track of your context.
 
 **Use cases:** Workspace management, project switching, development environment automation, context notes, productivity tool for developers.
