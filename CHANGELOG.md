@@ -22,7 +22,7 @@ All notable changes to this project will be documented in this file.
 - Replaced unsafe `libc::kill` with std::process::Command
 - Added config validation (empty names, invalid characters)
 
-## [0.1.0] - 2025-01-01
+## [0.1.0] - 2026-02-05
 
 ### Added
 - Initial release
