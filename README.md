@@ -284,7 +284,7 @@ Contributions are welcome! Please ensure:
 
 ### Documentation
 
-For detailed API documentation and advanced usage, visit: **[progflow Documentation](https://www.mintlify.com/Rehanasharmin/Progflow)**
+For detailed API documentation and advanced usage, visit: **[progflow Documentation](https://mintlify.wiki/Rehanasharmin/Progflow)**
 
 ## License
 
