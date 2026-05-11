@@ -118,7 +118,26 @@ Creates a new flow. If flags are provided, it runs non-interactively:
 #### `progflow note <name>`
 Displays the saved context note for a flow, or indicates "(no note saved)" if empty.
 
-## Configuration
+## One-Liner Support
+
+Progflow is designed to be fully automatable. You can create, activate, and manage flows using single-line commands, which is perfect for AI agents and CI/CD pipelines.
+
+### Examples:
+
+**Create and start a flow in one go:**
+```bash
+progflow new myflow --dir $(pwd) --editor "code ." --quiet && progflow on myflow --quiet
+```
+
+**Update note and stop flow silently:**
+```bash
+progflow edit myflow --set-note "Finished feature X" --quiet && progflow off myflow --force --quiet
+```
+
+**Cleanup and delete:**
+```bash
+progflow off myflow --force --quiet && progflow delete myflow --force --quiet
+```
 
 Flows are stored in `~/.config/flow/<name>.json`:
 
