@@ -3,7 +3,7 @@ use std::io::{self, IsTerminal, Write};
 use crate::config::{delete_lock_file, get_config_path};
 use crate::error::AppError;
 
-pub fn run(name: &str, force: bool) -> Result<(), AppError> {
+pub fn run(name: &str, force: bool, quiet: bool) -> Result<(), AppError> {
     let config_path = get_config_path(name)?;
 
     if !config_path.exists() {
@@ -34,7 +34,9 @@ pub fn run(name: &str, force: bool) -> Result<(), AppError> {
 
     let _ = delete_lock_file(name);
 
-    println!("✓ flow '{}' deleted", name);
+    if !quiet {
+        println!("✓ flow '{}' deleted", name);
+    }
 
     Ok(())
 }

@@ -1,10 +1,21 @@
 use std::process::Command;
 
-use crate::config::get_config_path;
+use crate::config::{get_config_path, load_config, save_config};
 use crate::error::AppError;
 use crate::platform::get_editor;
 
-pub fn run(name: &str) -> Result<(), AppError> {
+pub fn run(name: &str, set_note: Option<String>, quiet: bool) -> Result<(), AppError> {
+    if let Some(note) = set_note {
+        let mut config = load_config(name)?;
+        let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
+        config.note = format!("[{}] {}", timestamp, note.trim());
+        save_config(&config)?;
+        if !quiet {
+            println!("✓ note updated for flow '{}'", name);
+        }
+        return Ok(());
+    }
+
     let config_path = get_config_path(name)?;
 
     if !config_path.exists() {

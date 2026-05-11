@@ -4,7 +4,7 @@ use std::process::Command;
 use crate::config::{delete_lock_file, find_active_flow, load_config, read_lock_file, save_config};
 use crate::error::AppError;
 
-pub fn run(name: Option<&str>, force: bool, verbose: bool) -> Result<(), AppError> {
+pub fn run(name: Option<&str>, force: bool, verbose: bool, quiet: bool) -> Result<(), AppError> {
     let name = match name {
         Some(n) => n.to_string(),
         None => match find_active_flow()? {
@@ -32,26 +32,35 @@ pub fn run(name: Option<&str>, force: bool, verbose: bool) -> Result<(), AppErro
         if verbose {
             eprintln!("Sending SIGTERM to PID {}", pid);
         }
-        let output = Command::new("kill")
+        let _ = Command::new("kill")
             .arg("-TERM")
             .arg(pid.to_string())
-            .output();
+            .status();
+    }
 
-        match output {
-            Ok(out) if out.status.success() => {}
-            Ok(out) => {
-                let code = out.status.code().unwrap_or(-1);
-                if code != 3 {
-                    eprintln!(
-                        "Warning: Failed to terminate process {}: exit code {}",
-                        pid, code
-                    );
-                }
-            }
-            Err(e) => {
-                eprintln!("Warning: Failed to terminate PID {}: {}", pid, e);
-            }
+    // Wait for up to 3 seconds for processes to exit
+    let start = std::time::Instant::now();
+    let mut pending_pids = lock.pids.clone();
+
+    while !pending_pids.is_empty() && start.elapsed().as_secs() < 3 {
+        pending_pids.retain(|pid| {
+            // Check if process still exists
+            let status = Command::new("kill").arg("-0").arg(pid.to_string()).status();
+            status.map(|s| s.success()).unwrap_or(false)
+        });
+        if !pending_pids.is_empty() {
+            std::thread::sleep(std::time::Duration::from_millis(100));
         }
+    }
+
+    for pid in pending_pids {
+        if verbose {
+            eprintln!("Sending SIGKILL to PID {}", pid);
+        }
+        let _ = Command::new("kill")
+            .arg("-KILL")
+            .arg(pid.to_string())
+            .status();
     }
 
     let is_interactive = io::stdin().is_terminal() && !force;
@@ -87,7 +96,9 @@ pub fn run(name: Option<&str>, force: bool, verbose: bool) -> Result<(), AppErro
 
     delete_lock_file(&name)?;
 
-    println!("✓ flow '{}' stopped", name);
+    if !quiet {
+        println!("✓ flow '{}' stopped", name);
+    }
 
     Ok(())
 }

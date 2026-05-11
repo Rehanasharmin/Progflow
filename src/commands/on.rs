@@ -6,7 +6,7 @@ use crate::config::{load_config, write_lock_file};
 use crate::error::AppError;
 use crate::platform::spawn_url;
 
-pub fn run(name: &str, verbose: bool) -> Result<(), AppError> {
+pub fn run(name: &str, verbose: bool, quiet: bool) -> Result<(), AppError> {
     let config = load_config(name)?;
 
     config.validate()?;
@@ -32,7 +32,19 @@ pub fn run(name: &str, verbose: bool) -> Result<(), AppError> {
         let mut cmd = Command::new("sh");
         cmd.arg("-c").arg(editor_cmd).current_dir(work_dir);
         cmd.stdin(std::process::Stdio::null());
+        cmd.stdout(std::process::Stdio::null());
         cmd.stderr(std::process::Stdio::null());
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            unsafe {
+                cmd.pre_exec(|| {
+                    libc::setsid();
+                    Ok(())
+                });
+            }
+        }
 
         apply_env(&mut cmd, &config.env);
 
@@ -77,7 +89,9 @@ pub fn run(name: &str, verbose: bool) -> Result<(), AppError> {
         parts.join(", ")
     };
 
-    println!("✓ flow '{}' started — {}", name, summary);
+    if !quiet {
+        println!("✓ flow '{}' started — {}", name, summary);
+    }
 
     Ok(())
 }

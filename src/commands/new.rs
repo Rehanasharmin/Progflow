@@ -4,24 +4,39 @@ use std::io::{self, IsTerminal, Write};
 use crate::config::{get_config_path, save_config, FlowConfig};
 use crate::error::AppError;
 
-pub fn run(name: &str) -> Result<(), AppError> {
+pub fn run(
+    name: &str,
+    dir: Option<String>,
+    editor: Option<String>,
+    urls: Option<String>,
+    env: Option<String>,
+    shell: Option<String>,
+    quiet: bool,
+) -> Result<(), AppError> {
     let config_path = get_config_path(name)?;
 
     if config_path.exists() {
         return Err(AppError::User(format!("Flow '{}' already exists", name)));
     }
 
-    let is_interactive = io::stdin().is_terminal();
+    let is_interactive = io::stdin().is_terminal()
+        && dir.is_none()
+        && editor.is_none()
+        && urls.is_none()
+        && env.is_none()
+        && shell.is_none();
 
     if is_interactive {
-        run_interactive(name)
+        run_interactive(name, quiet)
     } else {
-        run_non_interactive(name)
+        run_with_args(name, dir, editor, urls, env, shell, quiet)
     }
 }
 
-fn run_interactive(name: &str) -> Result<(), AppError> {
-    println!("Creating new flow '{}'", name);
+fn run_interactive(name: &str, quiet: bool) -> Result<(), AppError> {
+    if !quiet {
+        println!("Creating new flow '{}'", name);
+    }
 
     print!("Working directory (optional, press Enter to skip): ");
     io::stdout()
@@ -123,26 +138,59 @@ fn run_interactive(name: &str) -> Result<(), AppError> {
 
     save_config(&config)?;
 
-    println!("✓ flow '{}' created", name);
+    if !quiet {
+        println!("✓ flow '{}' created", name);
+    }
 
     Ok(())
 }
 
-fn run_non_interactive(name: &str) -> Result<(), AppError> {
+fn run_with_args(
+    name: &str,
+    dir: Option<String>,
+    editor: Option<String>,
+    urls: Option<String>,
+    env: Option<String>,
+    shell: Option<String>,
+    quiet: bool,
+) -> Result<(), AppError> {
+    let url_list: Option<Vec<String>> = urls.map(|u| {
+        u.split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect()
+    });
+
+    let env_vars: HashMap<String, String> = env
+        .map(|e| {
+            e.split(',')
+                .filter_map(|s| {
+                    let parts: Vec<&str> = s.splitn(2, '=').collect();
+                    if parts.len() == 2 {
+                        Some((parts[0].trim().to_string(), parts[1].trim().to_string()))
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
     let config = FlowConfig {
         name: name.to_string(),
-        directory: None,
-        editor_cmd: None,
-        url_list: None,
-        shell: "/bin/sh".to_string(),
-        env: HashMap::new(),
+        directory: dir,
+        editor_cmd: editor,
+        url_list,
+        shell: shell.unwrap_or_else(|| "/bin/sh".to_string()),
+        env: env_vars,
         note: String::new(),
     };
 
     save_config(&config)?;
 
-    println!("✓ flow '{}' created (non-interactive mode)", name);
-    println!("  Use 'progflow edit {}' to configure", name);
+    if !quiet {
+        println!("✓ flow '{}' created", name);
+    }
 
     Ok(())
 }

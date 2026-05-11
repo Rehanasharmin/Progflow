@@ -39,7 +39,7 @@ fn spawn_url_termux(url: &str) {
     }
 
     if let Ok(output) = Command::new("am")
-        .args(&["start", "-a", "android.intent.action.VIEW", "-d", url])
+        .args(["start", "-a", "android.intent.action.VIEW", "-d", url])
         .output()
     {
         if output.status.success() {
@@ -53,17 +53,42 @@ fn spawn_url_termux(url: &str) {
 
 fn spawn_url_linux(url: &str) {
     let openers = [
-        "xdg-open", "gio open", "firefox", "chromium", "brave", "xdg-open",
+        vec!["xdg-open"],
+        vec!["open"], // macOS
+        vec!["gio", "open"],
+        vec!["firefox"],
+        vec!["chromium"],
+        vec!["brave"],
     ];
 
-    for opener in openers {
-        if Command::new(opener).arg(url).spawn().is_ok() {
+    for args in openers {
+        let cmd_name = args[0];
+        if !command_exists(cmd_name) {
+            continue;
+        }
+
+        let mut cmd = Command::new(cmd_name);
+        if args.len() > 1 {
+            cmd.args(&args[1..]);
+        }
+        cmd.arg(url);
+
+        if cmd.spawn().is_ok() {
             return;
         }
     }
 
     eprintln!("Warning: Failed to open URL: {}", url);
-    eprintln!("Hint: Install xdg-utils: sudo apt install xdg-utils");
+}
+
+fn command_exists(cmd: &str) -> bool {
+    Command::new("which")
+        .arg(cmd)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
 }
 
 pub fn get_editor() -> Option<String> {

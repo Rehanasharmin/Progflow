@@ -37,10 +37,26 @@ enum Commands {
         #[arg(short, long, help = "Output as JSON")]
         json: bool,
     },
-    #[command(about = "Open the config file in $EDITOR")]
-    Edit { name: String },
-    #[command(about = "Scaffold a new flow config file interactively")]
-    New { name: String },
+    #[command(about = "Open the config file in $EDITOR or update it via flags")]
+    Edit {
+        name: String,
+        #[arg(long, help = "Set a note for the flow")]
+        set_note: Option<String>,
+    },
+    #[command(about = "Scaffold a new flow config file")]
+    New {
+        name: String,
+        #[arg(long, help = "Working directory")]
+        dir: Option<String>,
+        #[arg(long, help = "Editor command")]
+        editor: Option<String>,
+        #[arg(long, help = "Comma-separated URLs")]
+        urls: Option<String>,
+        #[arg(long, help = "Comma-separated environment variables (KEY=VALUE)")]
+        env: Option<String>,
+        #[arg(long, help = "Shell path")]
+        shell: Option<String>,
+    },
     #[command(about = "Print the last saved context note for a flow")]
     Note { name: String },
     #[command(about = "Show status of active flow")]
@@ -57,14 +73,21 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
 
     let result = match cli.command {
-        Commands::On { name } => on::run(&name, cli.verbose),
-        Commands::Off { name, force } => off::run(name.as_deref(), force, cli.verbose),
+        Commands::On { name } => on::run(&name, cli.verbose, cli.quiet),
+        Commands::Off { name, force } => off::run(name.as_deref(), force, cli.verbose, cli.quiet),
         Commands::List { json } => list::run(json),
-        Commands::Edit { name } => edit::run(&name),
-        Commands::New { name } => new::run(&name),
+        Commands::Edit { name, set_note } => edit::run(&name, set_note, cli.quiet),
+        Commands::New {
+            name,
+            dir,
+            editor,
+            urls,
+            env,
+            shell,
+        } => new::run(&name, dir, editor, urls, env, shell, cli.quiet),
         Commands::Note { name } => note::run(&name),
         Commands::Status => status::run(cli.verbose),
-        Commands::Delete { name, force } => delete::run(&name, force),
+        Commands::Delete { name, force } => delete::run(&name, force, cli.quiet),
     };
 
     match result {
