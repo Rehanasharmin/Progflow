@@ -11,7 +11,7 @@ use error::AppError;
 
 #[derive(Parser)]
 #[command(name = "progflow")]
-#[command(version = "0.1.2")]
+#[command(version = "0.1.3")]
 #[command(about = "A context-aware workspace manager for Linux", long_about = None)]
 struct Cli {
     #[command(subcommand)]

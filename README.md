@@ -34,16 +34,14 @@ cp target/release/progflow ~/.local/bin/
 ## Quick Start
 
 ```bash
+# Interactive creation
 progflow new dev
-# Follow the prompts:
-# - Working directory: /home/you/projects/myapp
-# - Editor command: nvim .
-# - URLs to open: https://github.com, https://docs.rs
-# - Shell: /bin/bash
-# - Env vars (optional): NODE_ENV=development
+
+# Non-interactive / Scripted creation (New in 0.1.3!)
+progflow new dev --dir /home/you/projects/myapp --editor "code ." --urls "https://github.com" --quiet
 
 progflow on dev      # Start working
-progflow off dev    # Stop and save note
+progflow off dev    # Stop and save note (auto-skips note prompt if non-interactive)
 progflow list       # See all flows
 progflow note dev   # Read last note
 ```
@@ -61,43 +59,14 @@ progflow new backend
 progflow on backend  # Opens editor, browser, docs all at once
 ```
 
-### 2. Multi-Service Tasks
-Open all related tools at once:
+### 2. CI/CD or AI Agent Integration
+Automate workspace setup without prompts:
 ```bash
-progflow new monitoring
-# directory: /home/user
-# editor: (empty)
-# URLs: grafana.local, prometheus.local, alertmanager.local
-```
-
-### 3. Documentation Workflow
-Quick access to documentation:
-```bash
-progflow new docs
-# directory: ~/docs
-# editor: nvim .
-# URLs: rust-lang.org, docs.rs, github.com
-```
-
-### 4. Context Tracking
-Never lose track of what you were doing:
-```bash
-progflow off myflow
-# Save a context note? [y/N]: y
-# Enter note: Was debugging auth issue in JWT middleware
-
-# Next time:
-progflow note myflow
-# Output: Was debugging auth issue in JWT middleware
-```
-
-### 5. Termux (Android)
-Works the same on Termux - uses `termux-open-url` instead of `xdg-open`:
-```bash
-progflow new termux-work
-# directory: ~/projects
-# editor: termux-editor .
-# URLs: github.com
+progflow new auto-flow --dir $(pwd) --editor "vim ." --quiet
+progflow on auto-flow --quiet
+# ... do work ...
+progflow edit auto-flow --set-note "Task completed by agent" --quiet
+progflow off auto-flow --force --quiet
 ```
 
 ## Commands
@@ -109,8 +78,8 @@ Progflow provides commands to manage your workspace flows:
 | `progflow on <name>` | Activate a workspace flow |
 | `progflow off [name]` | Deactivate the current or specified flow |
 | `progflow list` | Display all configured flows |
-| `progflow new <name>` | Create a new flow |
-| `progflow edit <name>` | Open the flow's config in $EDITOR |
+| `progflow new <name>` | Create a new flow (interactive or with flags) |
+| `progflow edit <name>` | Open config in $EDITOR or update via flags |
 | `progflow note <name>` | View the saved context note |
 | `progflow status` | Show active flow and last note |
 | `progflow delete <name>` | Delete a flow (with confirmation) |
@@ -120,33 +89,31 @@ Progflow provides commands to manage your workspace flows:
 #### `progflow on <name>`
 Activates a workspace flow by:
 - Verifying the configured directory exists
-- Spawning the specified editor in the background
-- Opening all configured URLs in your default browser (or Termux browser)
+- Spawning the specified editor in the background (detached from current session)
+- Opening all configured URLs in your default browser (Linux, macOS, or Termux)
 - Writing process IDs to a lockfile for cleanup
-- Displaying a summary of launched components
+- Displaying a summary of launched components (unless `--quiet` is used)
 
 #### `progflow off [name]`
 Deactivates a flow by:
 - Automatically detecting the active flow if no name provided
 - Reading process IDs from the lockfile
-- Sending SIGTERM to all tracked processes
-- Prompting to save a context note (interactive mode)
+- Sending SIGTERM, waiting 3s, then SIGKILL to all tracked processes
+- Prompting to save a context note (interactive mode only)
 - Cleaning up the lockfile
-- Printing confirmation message
-
-#### `progflow list`
-Lists all configured flows by scanning the config directory and displaying flow names in alphabetical order.
 
 #### `progflow new <name>`
-Creates a new flow through an interactive questionnaire that collects:
-- Working directory path
-- Editor command to launch
-- Comma-separated list of URLs
-- Shell interpreter to use
-- Environment variables in KEY=VALUE format
+Creates a new flow. If flags are provided, it runs non-interactively:
+- `--dir <path>`: Working directory
+- `--editor <cmd>`: Editor command
+- `--urls <urls>`: Comma-separated URLs
+- `--env <vars>`: Comma-separated KEY=VALUE pairs
+- `--shell <path>`: Shell interpreter
+- `--quiet`: Suppress success message
 
 #### `progflow edit <name>`
-Opens the flow's JSON configuration file in the editor specified by `$EDITOR` or `$VISUAL` environment variables.
+- Opens the configuration file in `$EDITOR`.
+- **New:** Use `--set-note "message"` to programmatically update the context note.
 
 #### `progflow note <name>`
 Displays the saved context note for a flow, or indicates "(no note saved)" if empty.
