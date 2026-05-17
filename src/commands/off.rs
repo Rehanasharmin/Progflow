@@ -43,15 +43,13 @@ pub fn run(
             .output()
             .map_err(|e| AppError::Io("kill".to_string(), e))?;
 
-        if !output.status.success() {
-            if verbose {
-                let err = String::from_utf8_lossy(&output.stderr);
-                eprintln!(
-                    "Warning: Failed to terminate process {}: {}",
-                    pid,
-                    err.trim()
-                );
-            }
+        if !output.status.success() && verbose {
+            let err = String::from_utf8_lossy(&output.stderr);
+            eprintln!(
+                "Warning: Failed to terminate process {}: {}",
+                pid,
+                err.trim()
+            );
         }
     }
 

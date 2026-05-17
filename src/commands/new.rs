@@ -4,6 +4,7 @@ use std::io::{self, IsTerminal, Write};
 use crate::config::{save_config, FlowConfig, StartCommand};
 use crate::error::AppError;
 
+#[allow(clippy::too_many_arguments)]
 pub fn run(
     name: &str,
     dir: Option<String>,
@@ -61,11 +62,13 @@ pub fn run(
         // Interactive mode
         println!("Creating new flow: {}", name);
 
+        let mut input_buf = String::new();
+
         print!("Enter working directory [.] (or 'home'): ");
         io::stdout()
             .flush()
             .map_err(|e| AppError::Io("stdout".to_string(), e))?;
-        let mut input_buf = String::new();
+        input_buf.clear();
         io::stdin()
             .read_line(&mut input_buf)
             .map_err(|e| AppError::Io("stdin".to_string(), e))?;
@@ -85,6 +88,57 @@ pub fn run(
         let input = input_buf.trim();
         if !input.is_empty() {
             config.editor_cmd = Some(input.to_string());
+        }
+
+        print!("Enter URLs (comma-separated): ");
+        io::stdout()
+            .flush()
+            .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        input_buf.clear();
+        io::stdin()
+            .read_line(&mut input_buf)
+            .map_err(|e| AppError::Io("stdin".to_string(), e))?;
+        let input = input_buf.trim();
+        if !input.is_empty() {
+            config.url_list = Some(
+                input
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect(),
+            );
+        }
+
+        print!("Enter shell (e.g., /bin/bash) [default /bin/sh]: ");
+        io::stdout()
+            .flush()
+            .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        input_buf.clear();
+        io::stdin()
+            .read_line(&mut input_buf)
+            .map_err(|e| AppError::Io("stdin".to_string(), e))?;
+        let input = input_buf.trim();
+        if !input.is_empty() {
+            config.shell = input.to_string();
+        }
+
+        print!("Enter environment variables (KEY=value, comma-separated): ");
+        io::stdout()
+            .flush()
+            .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        input_buf.clear();
+        io::stdin()
+            .read_line(&mut input_buf)
+            .map_err(|e| AppError::Io("stdin".to_string(), e))?;
+        let input = input_buf.trim();
+        if !input.is_empty() {
+            for pair in input.split(',') {
+                if let Some((key, value)) = pair.split_once('=') {
+                    config
+                        .env
+                        .insert(key.trim().to_string(), value.trim().to_string());
+                }
+            }
         }
 
         loop {
