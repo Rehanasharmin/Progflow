@@ -7,6 +7,22 @@ use crate::error::AppError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct StartCommand {
+    pub command: String,
+    #[serde(default)]
+    pub working_directory: Option<String>,
+    #[serde(default)]
+    pub env: HashMap<String, String>,
+    #[serde(default = "default_background")]
+    pub background: bool,
+}
+
+fn default_background() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FlowConfig {
     pub name: String,
     #[serde(default)]
@@ -21,6 +37,10 @@ pub struct FlowConfig {
     pub env: HashMap<String, String>,
     #[serde(default)]
     pub note: String,
+    #[serde(default)]
+    pub start_commands: Vec<StartCommand>,
+    #[serde(default)]
+    pub last_note: Option<String>,
 }
 
 fn default_shell() -> String {

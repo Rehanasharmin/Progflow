@@ -25,12 +25,20 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     #[command(about = "Activate a named workspace flow")]
-    On { name: String },
+    On {
+        name: String,
+        #[arg(long, help = "Skip URL readiness check")]
+        skip_url_check: bool,
+        #[arg(long, help = "Edit context note")]
+        edit_note: bool,
+    },
     #[command(about = "Deactivate current or named flow")]
     Off {
         name: Option<String>,
         #[arg(short, long, help = "Skip saving note prompt")]
         force: bool,
+        #[arg(long, help = "Save a context note")]
+        note: Option<String>,
     },
     #[command(about = "List all configured flows")]
     List {
@@ -56,6 +64,14 @@ enum Commands {
         env: Option<String>,
         #[arg(long, help = "Shell path")]
         shell: Option<String>,
+        #[arg(long, help = "Start commands as JSON string")]
+        start_commands: Option<String>,
+        #[arg(long = "cmd", help = "Additional start command")]
+        cmds: Vec<String>,
+        #[arg(long = "cmd-dir", help = "Working directory for start command")]
+        cmd_dirs: Vec<String>,
+        #[arg(long = "cmd-bg", action = clap::ArgAction::Append, help = "Run start command in background (true/false)")]
+        cmd_bgs: Vec<String>,
     },
     #[command(about = "Print the last saved context note for a flow")]
     Note { name: String },
@@ -73,8 +89,14 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
 
     let result = match cli.command {
-        Commands::On { name } => on::run(&name, cli.verbose, cli.quiet),
-        Commands::Off { name, force } => off::run(name.as_deref(), force, cli.verbose, cli.quiet),
+        Commands::On {
+            name,
+            skip_url_check,
+            edit_note,
+        } => on::run(&name, skip_url_check, edit_note, cli.verbose, cli.quiet),
+        Commands::Off { name, force, note } => {
+            off::run(name.as_deref(), force, note, cli.verbose, cli.quiet)
+        }
         Commands::List { json } => list::run(json),
         Commands::Edit { name, set_note } => edit::run(&name, set_note, cli.quiet),
         Commands::New {
@@ -84,7 +106,23 @@ fn main() -> ExitCode {
             urls,
             env,
             shell,
-        } => new::run(&name, dir, editor, urls, env, shell, cli.quiet),
+            start_commands,
+            cmds,
+            cmd_dirs,
+            cmd_bgs,
+        } => new::run(
+            &name,
+            dir,
+            editor,
+            urls,
+            env,
+            shell,
+            start_commands,
+            cmds,
+            cmd_dirs,
+            cmd_bgs,
+            cli.quiet,
+        ),
         Commands::Note { name } => note::run(&name),
         Commands::Status => status::run(cli.verbose),
         Commands::Delete { name, force } => delete::run(&name, force, cli.quiet),

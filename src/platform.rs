@@ -56,6 +56,7 @@ fn spawn_url_linux(url: &str) {
         vec!["xdg-open"],
         vec!["open"], // macOS
         vec!["gio", "open"],
+        vec!["gnome-open"],
         vec!["firefox"],
         vec!["chromium"],
         vec!["brave"],
@@ -95,4 +96,13 @@ pub fn get_editor() -> Option<String> {
     std::env::var("EDITOR")
         .or_else(|_| std::env::var("VISUAL"))
         .ok()
+        .or_else(|| {
+            if command_exists("nano") {
+                Some("nano".to_string())
+            } else if command_exists("vi") {
+                Some("vi".to_string())
+            } else {
+                None
+            }
+        })
 }

@@ -4,7 +4,13 @@ use std::process::Command;
 use crate::config::{delete_lock_file, find_active_flow, load_config, read_lock_file, save_config};
 use crate::error::AppError;
 
-pub fn run(name: Option<&str>, force: bool, verbose: bool, quiet: bool) -> Result<(), AppError> {
+pub fn run(
+    name: Option<&str>,
+    force: bool,
+    note_arg: Option<String>,
+    verbose: bool,
+    quiet: bool,
+) -> Result<(), AppError> {
     let name = match name {
         Some(n) => n.to_string(),
         None => match find_active_flow()? {
@@ -32,64 +38,73 @@ pub fn run(name: Option<&str>, force: bool, verbose: bool, quiet: bool) -> Resul
         if verbose {
             eprintln!("Sending SIGTERM to PID {}", pid);
         }
-        let _ = Command::new("kill")
-            .arg("-TERM")
+        let output = Command::new("kill")
             .arg(pid.to_string())
-            .status();
-    }
+            .output()
+            .map_err(|e| AppError::Io("kill".to_string(), e))?;
 
-    // Wait for up to 3 seconds for processes to exit
-    let start = std::time::Instant::now();
-    let mut pending_pids = lock.pids.clone();
-
-    while !pending_pids.is_empty() && start.elapsed().as_secs() < 3 {
-        pending_pids.retain(|pid| {
-            // Check if process still exists
-            let status = Command::new("kill").arg("-0").arg(pid.to_string()).status();
-            status.map(|s| s.success()).unwrap_or(false)
-        });
-        if !pending_pids.is_empty() {
-            std::thread::sleep(std::time::Duration::from_millis(100));
+        if !output.status.success() {
+            if verbose {
+                let err = String::from_utf8_lossy(&output.stderr);
+                eprintln!(
+                    "Warning: Failed to terminate process {}: {}",
+                    pid,
+                    err.trim()
+                );
+            }
         }
     }
 
-    for pid in pending_pids {
-        if verbose {
-            eprintln!("Sending SIGKILL to PID {}", pid);
-        }
-        let _ = Command::new("kill")
-            .arg("-KILL")
-            .arg(pid.to_string())
-            .status();
+    // Wait 3 seconds
+    if !lock.pids.is_empty() {
+        std::thread::sleep(std::time::Duration::from_secs(3));
     }
 
-    let is_interactive = io::stdin().is_terminal() && !force;
+    for pid in &lock.pids {
+        let output = Command::new("kill")
+            .arg("-0")
+            .arg(pid.to_string())
+            .output()
+            .map_err(|e| AppError::Io("kill".to_string(), e))?;
 
-    if is_interactive {
+        if output.status.success() {
+            if verbose {
+                eprintln!("Sending SIGKILL to PID {}", pid);
+            }
+            let _ = Command::new("kill").arg("-9").arg(pid.to_string()).output();
+        }
+    }
+
+    if let Some(note) = note_arg {
+        let mut config = load_config(&name)?;
+        let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
+        let formatted_note = format!("[{}] {}", timestamp, note.trim());
+        config.note = formatted_note.clone();
+        config.last_note = Some(formatted_note);
+        save_config(&config)?;
+    } else if !force && io::stdin().is_terminal() {
         print!("Save a context note? [y/N]: ");
         io::stdout()
             .flush()
             .map_err(|e| AppError::Io("stdout".to_string(), e))?;
-
-        let mut input = String::new();
+        let mut answer = String::new();
         io::stdin()
-            .read_line(&mut input)
+            .read_line(&mut answer)
             .map_err(|e| AppError::Io("stdin".to_string(), e))?;
-
-        if input.trim().to_lowercase() == "y" {
+        if answer.trim().to_lowercase() == "y" {
             print!("Enter note: ");
             io::stdout()
                 .flush()
                 .map_err(|e| AppError::Io("stdout".to_string(), e))?;
-
             let mut note = String::new();
             io::stdin()
                 .read_line(&mut note)
                 .map_err(|e| AppError::Io("stdin".to_string(), e))?;
-
             let mut config = load_config(&name)?;
             let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
-            config.note = format!("[{}] {}", timestamp, note.trim());
+            let formatted_note = format!("[{}] {}", timestamp, note.trim());
+            config.note = formatted_note.clone();
+            config.last_note = Some(formatted_note);
             save_config(&config)?;
         }
     }

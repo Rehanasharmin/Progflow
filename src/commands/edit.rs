@@ -8,7 +8,9 @@ pub fn run(name: &str, set_note: Option<String>, quiet: bool) -> Result<(), AppE
     if let Some(note) = set_note {
         let mut config = load_config(name)?;
         let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
-        config.note = format!("[{}] {}", timestamp, note.trim());
+        let formatted_note = format!("[{}] {}", timestamp, note.trim());
+        config.note = formatted_note.clone();
+        config.last_note = Some(formatted_note);
         save_config(&config)?;
         if !quiet {
             println!("✓ note updated for flow '{}'", name);

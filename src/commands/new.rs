@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::{self, IsTerminal, Write};
 
-use crate::config::{get_config_path, save_config, FlowConfig};
+use crate::config::{save_config, FlowConfig, StartCommand};
 use crate::error::AppError;
 
 pub fn run(
@@ -11,181 +11,139 @@ pub fn run(
     urls: Option<String>,
     env: Option<String>,
     shell: Option<String>,
+    start_commands_json: Option<String>,
+    cmds: Vec<String>,
+    cmd_dirs: Vec<String>,
+    cmd_bgs: Vec<String>,
     quiet: bool,
 ) -> Result<(), AppError> {
-    let config_path = get_config_path(name)?;
-
-    if config_path.exists() {
-        return Err(AppError::User(format!("Flow '{}' already exists", name)));
-    }
-
-    let is_interactive = io::stdin().is_terminal()
-        && dir.is_none()
-        && editor.is_none()
-        && urls.is_none()
-        && env.is_none()
-        && shell.is_none();
-
-    if is_interactive {
-        run_interactive(name, quiet)
-    } else {
-        run_with_args(name, dir, editor, urls, env, shell, quiet)
-    }
-}
-
-fn run_interactive(name: &str, quiet: bool) -> Result<(), AppError> {
-    if !quiet {
-        println!("Creating new flow '{}'", name);
-    }
-
-    print!("Working directory (optional, press Enter to skip): ");
-    io::stdout()
-        .flush()
-        .map_err(|e| AppError::Io("stdout".to_string(), e))?;
-    let mut directory = String::new();
-    io::stdin()
-        .read_line(&mut directory)
-        .map_err(|e| AppError::Io("stdin".to_string(), e))?;
-    let directory: Option<String> = if directory.trim().is_empty() {
-        None
-    } else {
-        Some(directory.trim().to_string())
-    };
-
-    print!("Editor command (optional, e.g. 'vim .'): ");
-    io::stdout()
-        .flush()
-        .map_err(|e| AppError::Io("stdout".to_string(), e))?;
-    let mut editor_cmd = String::new();
-    io::stdin()
-        .read_line(&mut editor_cmd)
-        .map_err(|e| AppError::Io("stdin".to_string(), e))?;
-    let editor_cmd: Option<String> = if editor_cmd.trim().is_empty() {
-        None
-    } else {
-        Some(editor_cmd.trim().to_string())
-    };
-
-    print!("URLs to open (comma-separated, optional): ");
-    io::stdout()
-        .flush()
-        .map_err(|e| AppError::Io("stdout".to_string(), e))?;
-    let mut urls_input = String::new();
-    io::stdin()
-        .read_line(&mut urls_input)
-        .map_err(|e| AppError::Io("stdin".to_string(), e))?;
-    let url_list: Option<Vec<String>> = if urls_input.trim().is_empty() {
-        None
-    } else {
-        Some(
-            urls_input
-                .trim()
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect(),
-        )
-    };
-
-    print!("Shell (default: /bin/sh): ");
-    io::stdout()
-        .flush()
-        .map_err(|e| AppError::Io("stdout".to_string(), e))?;
-    let mut shell = String::new();
-    io::stdin()
-        .read_line(&mut shell)
-        .map_err(|e| AppError::Io("stdin".to_string(), e))?;
-    let shell: String = if shell.trim().is_empty() {
-        "/bin/sh".to_string()
-    } else {
-        shell.trim().to_string()
-    };
-
-    print!("Environment variables (KEY=VALUE, comma-separated, optional): ");
-    io::stdout()
-        .flush()
-        .map_err(|e| AppError::Io("stdout".to_string(), e))?;
-    let mut env_input = String::new();
-    io::stdin()
-        .read_line(&mut env_input)
-        .map_err(|e| AppError::Io("stdin".to_string(), e))?;
-    let env: HashMap<String, String> = if env_input.trim().is_empty() {
-        HashMap::new()
-    } else {
-        env_input
-            .trim()
-            .split(',')
-            .filter_map(|s| {
-                let parts: Vec<&str> = s.splitn(2, '=').collect();
-                if parts.len() == 2 {
-                    Some((parts[0].trim().to_string(), parts[1].trim().to_string()))
-                } else {
-                    None
-                }
-            })
-            .collect()
-    };
-
-    let config = FlowConfig {
-        name: name.to_string(),
-        directory,
-        editor_cmd,
-        url_list,
-        shell,
-        env,
-        note: String::new(),
-    };
-
-    save_config(&config)?;
-
-    if !quiet {
-        println!("✓ flow '{}' created", name);
-    }
-
-    Ok(())
-}
-
-fn run_with_args(
-    name: &str,
-    dir: Option<String>,
-    editor: Option<String>,
-    urls: Option<String>,
-    env: Option<String>,
-    shell: Option<String>,
-    quiet: bool,
-) -> Result<(), AppError> {
-    let url_list: Option<Vec<String>> = urls.map(|u| {
-        u.split(',')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect()
-    });
-
-    let env_vars: HashMap<String, String> = env
-        .map(|e| {
-            e.split(',')
-                .filter_map(|s| {
-                    let parts: Vec<&str> = s.splitn(2, '=').collect();
-                    if parts.len() == 2 {
-                        Some((parts[0].trim().to_string(), parts[1].trim().to_string()))
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-        })
-        .unwrap_or_default();
-
-    let config = FlowConfig {
+    let mut config = FlowConfig {
         name: name.to_string(),
         directory: dir,
         editor_cmd: editor,
-        url_list,
+        url_list: urls.map(|u| u.split(',').map(|s| s.trim().to_string()).collect()),
         shell: shell.unwrap_or_else(|| "/bin/sh".to_string()),
-        env: env_vars,
+        env: HashMap::new(),
         note: String::new(),
+        start_commands: Vec::new(),
+        last_note: None,
     };
 
+    if let Some(env_str) = env {
+        for pair in env_str.split(',') {
+            if let Some((key, value)) = pair.split_once('=') {
+                config
+                    .env
+                    .insert(key.trim().to_string(), value.trim().to_string());
+            }
+        }
+    }
+
+    if let Some(json) = start_commands_json {
+        config.start_commands = serde_json::from_str(&json)
+            .map_err(|e| AppError::User(format!("Invalid start commands JSON: {}", e)))?;
+    } else if !cmds.is_empty() {
+        for (i, cmd) in cmds.into_iter().enumerate() {
+            let working_directory = cmd_dirs.get(i).cloned();
+            let background = cmd_bgs.get(i).map(|s| s == "true").unwrap_or(true);
+            config.start_commands.push(StartCommand {
+                command: cmd,
+                working_directory,
+                env: HashMap::new(),
+                background,
+            });
+        }
+    } else if config.directory.is_none()
+        && config.editor_cmd.is_none()
+        && config.url_list.is_none()
+        && io::stdin().is_terminal()
+    {
+        // Interactive mode
+        println!("Creating new flow: {}", name);
+
+        print!("Enter working directory [.] (or 'home'): ");
+        io::stdout()
+            .flush()
+            .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        let mut input_buf = String::new();
+        io::stdin()
+            .read_line(&mut input_buf)
+            .map_err(|e| AppError::Io("stdin".to_string(), e))?;
+        let input = input_buf.trim();
+        if !input.is_empty() {
+            config.directory = Some(input.to_string());
+        }
+
+        print!("Enter editor command (e.g. 'code .'): ");
+        io::stdout()
+            .flush()
+            .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        input_buf.clear();
+        io::stdin()
+            .read_line(&mut input_buf)
+            .map_err(|e| AppError::Io("stdin".to_string(), e))?;
+        let input = input_buf.trim();
+        if !input.is_empty() {
+            config.editor_cmd = Some(input.to_string());
+        }
+
+        loop {
+            print!("Add a start command (y/n): ");
+            io::stdout()
+                .flush()
+                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+            input_buf.clear();
+            io::stdin()
+                .read_line(&mut input_buf)
+                .map_err(|e| AppError::Io("stdin".to_string(), e))?;
+            if input_buf.trim().to_lowercase() != "y" {
+                break;
+            }
+
+            print!("  Command: ");
+            io::stdout()
+                .flush()
+                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+            input_buf.clear();
+            io::stdin()
+                .read_line(&mut input_buf)
+                .map_err(|e| AppError::Io("stdin".to_string(), e))?;
+            let command = input_buf.trim().to_string();
+
+            print!("  Working directory (enter for flow dir, or 'home'): ");
+            io::stdout()
+                .flush()
+                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+            input_buf.clear();
+            io::stdin()
+                .read_line(&mut input_buf)
+                .map_err(|e| AppError::Io("stdin".to_string(), e))?;
+            let working_directory = if input_buf.trim().is_empty() {
+                None
+            } else {
+                Some(input_buf.trim().to_string())
+            };
+
+            print!("  Run in background (y/n) [y]: ");
+            io::stdout()
+                .flush()
+                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+            input_buf.clear();
+            io::stdin()
+                .read_line(&mut input_buf)
+                .map_err(|e| AppError::Io("stdin".to_string(), e))?;
+            let background = input_buf.trim().to_lowercase() != "n";
+
+            config.start_commands.push(StartCommand {
+                command,
+                working_directory,
+                env: HashMap::new(),
+                background,
+            });
+        }
+    }
+
+    config.validate()?;
     save_config(&config)?;
 
     if !quiet {
