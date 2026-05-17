@@ -77,7 +77,7 @@ enum Commands {
     Note { name: String },
     #[command(about = "Show status of active flow")]
     Status,
-    #[command(about = "Delete a flow")]
+    #[command(about = "Delete a flow", alias = "remove")]
     Delete {
         name: String,
         #[arg(short, long, help = "Skip confirmation")]

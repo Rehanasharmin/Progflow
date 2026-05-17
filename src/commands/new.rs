@@ -18,6 +18,15 @@ pub fn run(
     cmd_bgs: Vec<String>,
     quiet: bool,
 ) -> Result<(), AppError> {
+    let is_interactive = dir.is_none()
+        && editor.is_none()
+        && urls.is_none()
+        && env.is_none()
+        && shell.is_none()
+        && start_commands_json.is_none()
+        && cmds.is_empty()
+        && io::stdin().is_terminal();
+
     let mut config = FlowConfig {
         name: name.to_string(),
         directory: dir,
@@ -54,11 +63,7 @@ pub fn run(
                 background,
             });
         }
-    } else if config.directory.is_none()
-        && config.editor_cmd.is_none()
-        && config.url_list.is_none()
-        && io::stdin().is_terminal()
-    {
+    } else if is_interactive {
         // Interactive mode
         println!("Creating new flow: {}", name);
 

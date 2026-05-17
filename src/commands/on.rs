@@ -219,9 +219,16 @@ fn check_url_ready(url: &str) {
     }
 
     let addr = if host_port.contains(':') {
-        host_port.replace("localhost", "127.0.0.1")
+        host_port
+            .replace("localhost", "127.0.0.1")
+            .replace("0.0.0.0", "127.0.0.1")
     } else {
-        format!("{}:80", host_port.replace("localhost", "127.0.0.1"))
+        format!(
+            "{}:80",
+            host_port
+                .replace("localhost", "127.0.0.1")
+                .replace("0.0.0.0", "127.0.0.1")
+        )
     };
 
     let ready = if let Ok(mut addrs) = addr.to_socket_addrs() {
