@@ -443,3 +443,15 @@ fn test_status_json() {
         .join(format!("{}.json", name));
     let _ = fs::remove_file(config_path);
 }
+
+#[test]
+fn test_update_command_help() {
+    let output = Command::new("target/release/progflow")
+        .args(["update", "--help"])
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Update progflow to the latest version"));
+}

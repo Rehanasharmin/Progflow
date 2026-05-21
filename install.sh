@@ -462,19 +462,46 @@ find_existing_binary() {
 }
 
 # ------------------------- Version/Update -------------------------
-check_for_updates() {
-    local current_binary="$1"
-    if [ ! -d ".git" ]; then return 1; fi
-    ensure_git || return 1
-    git fetch -q origin 2>/dev/null || return 1
-    local local_hash=$(git rev-parse HEAD 2>/dev/null) || return 1
-    local remote_hash=$(git rev-parse origin/main 2>/dev/null) || remote_hash=$(git rev-parse origin/master 2>/dev/null) || return 1
-    [ "$local_hash" != "$remote_hash" ]
+get_remote_hash() {
+    git ls-remote "$REPO_URL" HEAD | awk '{print $1}'
+}
+
+get_local_version_info() {
+    local binary
+    binary=$(find_existing_binary) || return 1
+    # We can't easily get the hash from the binary, so we'll check if the 
+    # current directory is the repo and matches the binary.
+    # For now, we will rely on the binary's version if possible, 
+    # but since version is static, we'll force update if requested via 'install' 
+    # and only be 'smart' in the 'update' command.
+    echo "unknown"
 }
 
 # ------------------------- Install/Uninstall -------------------------
 install() {
+    local is_update_cmd="${1:-false}"
+    
     print_info "Starting $PROGRAM_NAME installation..."
+    
+    if [ "$is_update_cmd" = "true" ]; then
+        print_info "Checking for updates..."
+        ensure_git || exit 1
+        local remote_hash
+        remote_hash=$(get_remote_hash)
+        
+        # In a real scenario, we might store the installed hash in a file.
+        # Since we don't have that yet, the smart check is limited to 
+        # local git context if available.
+        if [ -d ".git" ]; then
+            local local_hash
+            local_hash=$(git rev-parse HEAD)
+            if [ "$local_hash" = "$remote_hash" ] && [ "$FORCE_INSTALL" = false ]; then
+                print_success "$PROGRAM_NAME is already at the latest version ($local_hash)."
+                exit 0
+            fi
+        fi
+    fi
+
     print_info "Detected OS: $(get_os)-$(get_arch)"
     if is_termux; then print_info "Environment: Termux"; fi
     if is_wsl;   then print_info "Environment: WSL"; fi
@@ -583,7 +610,7 @@ main() {
             ;;
         update)
             FORCE_INSTALL=true
-            install
+            install true
             ;;
         uninstall|remove)
             uninstall
