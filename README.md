@@ -87,6 +87,9 @@ Inspect the last persisted context note for the specified flow.
 #### `progflow logs <name>`
 Inspect standard output and error streams of background services associated with the flow.
 
+#### `progflow update`
+Automatically update Progflow to the latest version from the source repository.
+
 #### `progflow delete <name>` (Alias: `remove`)
 Remove a flow configuration and its associated state.
 - `--force`: Suppress deletion confirmation prompt.

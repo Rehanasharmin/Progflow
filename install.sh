@@ -18,6 +18,16 @@ REPO_URL="https://github.com/Rehanasharmin/Progflow.git"
 INSTALL_DIRS=("/usr/local/bin" "$HOME/.local/bin")
 CONFIG_DIR="$HOME/.config/flow"
 REQUIRED_RUST_VERSION="1.70"
+FORCE_INSTALL=false
+
+# ------------------------- Argument Parsing -------------------------
+for arg in "$@"; do
+    case $arg in
+        --force)
+            FORCE_INSTALL=true
+            ;;
+    esac
+done
 
 # Colors for output
 RED='\033[0;31m'
@@ -473,7 +483,7 @@ install() {
     # Existing installation?
     local existing_binary
     existing_binary=$(find_existing_binary) || true
-    if [ -n "$existing_binary" ]; then
+    if [ -n "$existing_binary" ] && [ "$FORCE_INSTALL" = false ]; then
         print_warning "$PROGRAM_NAME is already installed at $existing_binary"
         read -p "Reinstall? [y/N]: " -n 1 -r
         echo
@@ -569,6 +579,10 @@ show_version() {
 main() {
     case "${1:-install}" in
         install)
+            install
+            ;;
+        update)
+            FORCE_INSTALL=true
             install
             ;;
         uninstall|remove)

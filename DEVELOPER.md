@@ -15,7 +15,7 @@ Progflow is architected as a modular, stateless CLI utility written in Rust. It 
 | **`platform.rs`** | OS Abstraction | Normalizes cross-platform behavior for Linux, macOS, and Termux environments. |
 | **`tips.rs`** | User Intelligence | Selects contextual operational heuristics based on platform and event triggers. |
 | **`error.rs`** | Fault Management | Implements custom `AppError` enum with `std::fmt::Display` for consistent error reporting. |
-| **`commands/`** | Subcommand Logic | Discrete implementation modules for each atomic operation (`on`, `off`, `new`, etc.). |
+| **`commands/`** | Subcommand Logic | Discrete implementation modules for each atomic operation (`on`, `off`, `update`, etc.). |
 
 ## Process Lifecycle and Orchestration Logic
 
@@ -43,6 +43,14 @@ The termination sequence prioritizes graceful reclamation of resources:
 2. **Latent Synchronization**: A 3-second thread sleep is implemented to allow processes time to respond to `SIGTERM`.
 3. **Forced Reclamation (Phase 2)**: Re-verifies PID liveness via `kill -0`. Remaining processes are sent `SIGKILL` to ensure complete termination.
 4. **State Finalization**: Captures context notes and persists them to the primary JSON configuration. Deletes the lockfile.
+
+### Update Workflow (`progflow update`)
+
+The self-update mechanism leverages the primary installation script:
+
+1. **Automation Trigger**: The binary invokes a remote `curl | bash` pipeline.
+2. **Flag Injection**: Passses the `update` argument, which sets the `FORCE_INSTALL` internal flag in `install.sh`.
+3. **Atomic Reinstallation**: The script fetches the latest source, builds a release binary, and performs an atomic overwrite of the existing executable.
 
 ## Technical Architecture Flowchart
 

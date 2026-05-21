@@ -7,7 +7,7 @@ mod tips;
 use clap::{Parser, Subcommand};
 use std::process::ExitCode;
 
-use commands::{delete, edit, list, logs, new, note, off, on, status};
+use commands::{delete, edit, list, logs, new, note, off, on, status, update};
 use error::AppError;
 
 #[derive(Parser)]
@@ -103,6 +103,8 @@ enum Commands {
     },
     #[command(about = "Show logs of start commands for a flow")]
     Logs { name: String },
+    #[command(about = "Update progflow to the latest version")]
+    Update,
 }
 
 fn main() -> ExitCode {
@@ -174,6 +176,7 @@ fn main() -> ExitCode {
         Commands::Status { json } => status::run(json, cli.verbose, cli.quiet),
         Commands::Delete { name, force } => delete::run(&name, force, cli.verbose, cli.quiet),
         Commands::Logs { name } => logs::run(&name, cli.verbose, cli.quiet),
+        Commands::Update => update::run(cli.verbose, cli.quiet),
     };
 
     match result {
