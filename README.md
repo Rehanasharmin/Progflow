@@ -89,6 +89,9 @@ Inspect standard output and error streams of background services associated with
 
 #### `progflow update`
 Automatically update Progflow to the latest version from the source repository.
+```bash
+progflow update
+```
 
 #### `progflow delete <name>` (Alias: `remove`)
 Remove a flow configuration and its associated state.

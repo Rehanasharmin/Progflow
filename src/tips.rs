@@ -38,6 +38,7 @@ fn get_create_tips(os: &str) -> Vec<&str> {
         "You can update any part of this flow later with 'progflow edit <name>'.",
         "Add multiple start commands to launch your database, dev server, and more at once!",
         "Use the --urls flag to provide a comma-separated list of URLs to open automatically.",
+        "Keep your tool fresh! Run 'progflow update' periodically to get the latest features.",
     ];
 
     match os {
@@ -62,6 +63,7 @@ fn get_on_tips(os: &str) -> Vec<&str> {
         "Use 'progflow logs <name>' to see the output of your background start commands.",
         "Need to see what's running? 'progflow status' gives you a full breakdown.",
         "You can add a quick note to this session with 'progflow on <name> --note \"working on X\"'.",
+        "New features are added regularly! Run 'progflow update' to stay current.",
     ];
 
     match os {
@@ -84,6 +86,7 @@ fn get_off_tips(os: &str) -> Vec<&str> {
         "Your last note is saved! It will be shown next time you run 'progflow on'.",
         "Use 'progflow off --force' if you're in a hurry and want to skip the note prompt.",
         "Progflow sends SIGTERM then SIGKILL to ensure all your processes are cleaned up properly.",
+        "Want the latest bug fixes? Run 'progflow update' before your next session.",
     ];
 
     match os {
