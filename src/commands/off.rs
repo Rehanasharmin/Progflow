@@ -123,6 +123,7 @@ pub fn run(
 
     if !quiet {
         println!("✓ flow '{}' stopped", name);
+        crate::tips::show_tip(crate::tips::TipEvent::Off);
     }
 
     Ok(())

@@ -2,6 +2,7 @@ mod commands;
 mod config;
 mod error;
 mod platform;
+mod tips;
 
 use clap::{Parser, Subcommand};
 use std::process::ExitCode;

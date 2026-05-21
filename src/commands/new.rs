@@ -228,6 +228,7 @@ pub fn run(
 
     if !quiet {
         println!("✓ flow '{}' created", name);
+        crate::tips::show_tip(crate::tips::TipEvent::Create);
     }
 
     Ok(())
