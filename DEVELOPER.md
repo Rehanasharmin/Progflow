@@ -6,108 +6,124 @@ This document provides a comprehensive technical overview of the Progflow archit
 
 Progflow is architected as a modular, stateless CLI utility written in Rust. It prioritizes deterministic behavior, minimal resource overhead, and cross-platform compatibility without reliance on an asynchronous runtime.
 
-### Core Modules
+### Project Module Map
 
-- **`main.rs`**: Entry point. Utilizes the `clap` crate for declarative argument parsing and command dispatching.
-- **`config.rs`**: Data layer. Manages serialization/deserialization of `FlowConfig`, filesystem interactions in XDG-compliant directories, and the lockfile mechanism for process synchronization.
-- **`platform.rs`**: Abstraction layer. Encapsulates environment detection (Termux vs. Desktop vs. macOS) and provides normalized interfaces for system-level operations like resource invocation (e.g., `xdg-open` vs. `open`).
-- **`tips.rs`**: Utility module. Provides context-aware operational heuristics based on event triggers and host OS metadata.
-- **`commands/`**: Implementation layer. Each subcommand (`on`, `off`, `new`, etc.) is encapsulated in its own module to ensure high cohesion and low coupling.
+| Module | Responsibility | Technical Details |
+| :--- | :--- | :--- |
+| **`main.rs`** | Entry Point | Manages CLI dispatching via `clap`. Implements global `ExitCode` mapping. |
+| **`config.rs`** | Data Abstraction | Handles JSON serialization via `serde`. Manages PID synchronization in `.lock` files. |
+| **`platform.rs`** | OS Abstraction | Normalizes cross-platform behavior for Linux, macOS, and Termux environments. |
+| **`tips.rs`** | User Intelligence | Selects contextual operational heuristics based on platform and event triggers. |
+| **`error.rs`** | Fault Management | Implements custom `AppError` enum with `std::fmt::Display` for consistent error reporting. |
+| **`commands/`** | Subcommand Logic | Discrete implementation modules for each atomic operation (`on`, `off`, `new`, etc.). |
 
-## Process Lifecycle and Orchestration
+## Process Lifecycle and Orchestration Logic
 
-Progflow manages the lifecycle of development environments through a deterministic state machine.
+Progflow manages the lifecycle of development environments through a deterministic state machine and tiered process management.
 
-### Activation Flow (`progflow on`)
+### Activation Workflow (`progflow on`)
 
-1. **Lock Verification**: The utility checks for an existing `.lock` file. If present, it verifies PID liveness via `kill -0`. If PIDs are active, activation is aborted to prevent state corruption.
-2. **Resource Preparation**: Normalizes the working directory and environment variables.
-3. **Parallel Spawning**:
-   - Spawns the configured editor using `sh -c` and `setsid` (on Unix) to detach it from the parent CLI process.
-   - Iterates through `start_commands`, redirecting standard output and error streams to specific log files in the `~/.config/flow/logs/` directory.
-4. **Network Validation**: For local URLs, the utility performs synchronous TCP handshakes with a 3-second timeout before invoking the platform's browser interface.
-5. **State Synchronization**: Writes the PIDs of all successfully spawned processes to the `.lock` file.
+The activation sequence is designed to be atomic and failure-aware:
 
-### Termination Flow (`progflow off`)
+1. **Mutual Exclusion Check**: Invokes `is_flow_active()`. If a lockfile exists, it performs a `kill -0` check on stored PIDs. Active PIDs trigger an immediate abort with a user-facing error to prevent concurrent instance conflicts.
+2. **Environment Ingestion**: Merges the global system environment with the flow's specific `env` HashMap.
+3. **Execution Context**: Changes the working directory to the flow's root. If unspecified, it defaults to the current directory of the caller.
+4. **Process Detachment**: 
+   - IDEs and start commands are spawned using `sh -c`.
+   - On Unix systems, `setsid()` is invoked via `pre_exec` to create a new session, effectively detaching the child process from the parent terminal.
+   - For background processes, standard output and error streams are redirected to an append-only log file in `~/.config/flow/logs/<name>.log`.
+5. **Connectivity Verification**: Localhost/127.0.0.1 URLs undergo a `TcpStream::connect_timeout` check (3s). A failure does not block execution but generates a warning telemetry event.
+6. **PID Persistence**: Writes all successfully spawned PIDs to `~/.config/flow/<name>.lock`.
 
-1. **State Retrieval**: Reads PIDs from the `.lock` file.
-2. **Tiered Termination**:
-   - **Phase 1 (SIGTERM)**: Delivers `SIGTERM` to all tracked PIDs to request graceful shutdown.
-   - **Phase 2 (Latent Wait)**: Implements a mandatory 3-second delay to allow for resource cleanup.
-   - **Phase 3 (SIGKILL)**: Verifies liveness via `kill -0` and delivers `SIGKILL` to any remaining processes.
-3. **Cleanup**: Removes the `.lock` file and persists any terminal context notes to the primary configuration file.
+### Termination Workflow (`progflow off`)
 
-## Technical Flowchart
+The termination sequence prioritizes graceful reclamation of resources:
+
+1. **Signal Delivery (Phase 1)**: Iterates through PIDs in the lockfile and sends `SIGTERM`. This allows processes (like databases or complex servers) to perform cleanup or state persistence.
+2. **Latent Synchronization**: A 3-second thread sleep is implemented to allow processes time to respond to `SIGTERM`.
+3. **Forced Reclamation (Phase 2)**: Re-verifies PID liveness via `kill -0`. Remaining processes are sent `SIGKILL` to ensure complete termination.
+4. **State Finalization**: Captures context notes and persists them to the primary JSON configuration. Deletes the lockfile.
+
+## Technical Architecture Flowchart
 
 ```mermaid
 graph TD
-    A[CLI Input] --> B{Command Dispatcher}
+    User([User CLI Input]) --> Clap{Argument Parser}
     
-    B -->|on| C[Load Config]
-    C --> D{is_flow_active?}
-    D -->|Yes| E[Abort: Already Active]
-    D -->|No| F[Spawn Editor / Start Commands]
-    F --> G[URL Readiness Check]
-    G --> H[Open Browser]
-    H --> I[Write Lockfile]
-    
-    B -->|off| J[Read Lockfile]
-    J --> K[Send SIGTERM]
-    K --> L[Wait 3s]
-    L --> M[Send SIGKILL to survivors]
-    M --> N[Save Context Note]
-    N --> O[Delete Lockfile]
-    
-    B -->|status| P[Read Lockfile]
-    P --> Q[Verify PID Liveness]
-    Q --> R[Display Running Process Count]
+    subgraph Command Dispatcher
+        Clap -->|on| OnCmd[commands::on]
+        Clap -->|off| OffCmd[commands::off]
+        Clap -->|status| StatCmd[commands::status]
+        Clap -->|new/edit| ConfigCmd[commands::new/edit]
+    end
+
+    subgraph Data Layer
+        OnCmd --> LoadConf[config::load_config]
+        LoadConf --> ActiveCheck{is_flow_active?}
+        ActiveCheck -->|Yes| Abort[Return Error]
+        ActiveCheck -->|No| Exec[Spawn Processes]
+        Exec --> Log[Write to logs/]
+        Exec --> WriteLock[config::write_lock_file]
+        
+        OffCmd --> ReadLock[config::read_lock_file]
+        ReadLock --> Term[Signal Management]
+        Term --> SaveNote[Update config.last_note]
+        SaveNote --> DelLock[config::delete_lock_file]
+    end
+
+    subgraph Platform Abstraction
+        Exec --> Spawner[platform::spawn_url]
+        Spawner -->|macOS| OpenCmd[open]
+        Spawner -->|Linux| XdgCmd[xdg-open]
+        Spawner -->|Termux| TermuxCmd[termux-open-url]
+    end
 ```
 
-## Data Specification
+## Internal Data Specifications
 
-### Configuration Schema (`FlowConfig`)
+### Filesystem Hierarchy
 
-Configurations are persisted as JSON objects.
+Progflow adheres to the XDG Base Directory Specification:
 
-| Field | Description | Type |
+- **Config**: `~/.config/flow/<name>.json`
+- **Locks**: `~/.config/flow/<name>.lock`
+- **Logs**: `~/.config/flow/logs/<name>.log`
+
+### Core Schema Definition
+
+```rust
+pub struct FlowConfig {
+    pub name: String,                    // Primary Identifier
+    pub directory: Option<String>,        // Root execution path
+    pub editor_cmd: Option<String>,       // Integrated IDE command
+    pub url_list: Option<Vec<String>>,    // Web resource array
+    pub shell: String,                   // Command interpreter path
+    pub env: HashMap<String, String>,     // Global environment overrides
+    pub start_commands: Vec<StartCommand>, // Background service definitions
+    pub last_note: Option<String>,        // Persistent session state
+}
+```
+
+## Error Handling and Diagnostics
+
+Progflow implements a robust error handling strategy using the `AppError` type. This ensures that failures are captured with maximum context (paths, OS error codes, and semantic reason) and reported to the user with actionable remediation steps.
+
+| Error Variant | Cause | User Impact |
 | :--- | :--- | :--- |
-| `name` | Unique flow identifier | `String` |
-| `directory` | Target filesystem path | `Option<String>` |
-| `editorCmd` | Shell command for IDE invocation | `Option<String>` |
-| `urlList` | Array of resources for browser invocation | `Option<Vec<String>>` |
-| `shell` | Path to preferred shell interpreter | `String` |
-| `env` | Key-value pairs for environment injection | `HashMap<String, String>` |
-| `startCommands` | List of `StartCommand` objects | `Vec<StartCommand>` |
-| `lastNote` | Persistent state from the previous session | `Option<String>` |
+| `User` | Semantic/Logical error | Blocked execution; provided with suggestion. |
+| `Io` | Filesystem/OS failure | Technical diagnostic reported; exit code 2. |
+| `Json` | Data corruption | Configuration rejected; requires manual fix. |
+| `Config` | Validation failure | Prevented invalid state entry. |
 
-### StartCommand Object
+## Development and Testing Standards
 
-| Field | Description | Type |
-| :--- | :--- | :--- |
-| `command` | Executable shell command | `String` |
-| `workingDirectory` | Context path for execution | `Option<String>` |
-| `env` | Local environment overrides | `HashMap<String, String>` |
-| `background` | Detachment flag | `bool` |
+### Automated Validation
+The integration suite in `tests/integration_test.rs` is mandatory for all changes. It utilizes the `Command` API to simulate real-world usage patterns across the entire subcommand spectrum.
 
-## Error Handling Paradigm
-
-Progflow utilizes a custom `AppError` enum to categorize and normalize failures across the system.
-
-- **`User`**: Input validation or operational state errors (e.g., flow already active). Includes recovery suggestions.
-- **`Io`**: Filesystem or process spawning failures. Captures both the OS error and the target path.
-- **`Json`**: Serialization or schema mismatch errors.
-- **`Config`**: Semantic errors within a valid JSON configuration.
-
-## Testing Strategy
-
-The project implements a rigorous integration testing suite in `tests/integration_test.rs`. These tests execute the compiled binary in an isolated environment to verify:
-
-1. **End-to-End Workflows**: Sequential creation, activation, and termination cycles.
-2. **Process Integrity**: Verification that background processes are correctly spawned and reclaimed.
-3. **Non-Interactive Robustness**: Ensuring all features function via CLI flags and piped input.
-4. **State Persistence**: Confirming notes and configuration updates survive session transitions.
-
-Developers must run `cargo test --release` to ensure compliance before submitting changes.
+### Contribution Guidelines
+1. **Idiomatic Rust**: Adhere to standard Rust naming conventions and safety patterns.
+2. **Minimal Dependencies**: Any new dependency must be vetted for size and security impact.
+3. **Platform Parity**: Features must be verified on at least two of the three primary target platforms (Linux, macOS, Termux).
 
 ---
 

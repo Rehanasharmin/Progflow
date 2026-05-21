@@ -1,5 +1,7 @@
 # Progflow: Context-Aware Workspace Orchestration Utility
 
+[Official Website](https://progflowcli.netlify.app)
+
 [![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange.svg?style=flat-square)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Termux-lightgrey.svg?style=flat-square)](https://github.com/Rehanasharmin/Progflow)
@@ -37,16 +39,57 @@ cargo build --release
 cp target/release/progflow ~/.local/bin/
 ```
 
-### Core Subcommands
+### Command Reference
 
-| Subcommand | Operational Description |
-| :--- | :--- |
-| `progflow new <name>` | Initialize a new workspace flow configuration. |
-| `progflow on <name>` | Activate specified flow and associated background processes. |
-| `progflow status` | Retrieve operational status of the active flow. |
-| `progflow off` | Execute graceful termination of tracked processes and persist state. |
-| `progflow logs <name>` | Inspect standard output and error streams of background services. |
-| `progflow list` | Enumerate all configured flows with liveness indicators. |
+#### Global Options
+- `-v, --verbose`: Enable detailed operational telemetry.
+- `-q, --quiet`: Suppress standard output for concise execution.
+
+#### `progflow on <name>`
+Activate a workspace flow and associated processes.
+- `--skip-url-check`: Bypass synchronous TCP connectivity verification for local resources.
+- `--edit-note`: Invoke the system editor to modify the context note prior to activation.
+- `--note <text>`: Set a transient context note for the current session via CLI.
+
+#### `progflow off [name]`
+Execute graceful termination of tracked processes.
+- `--force`: Bypass the interactive context note prompt.
+- `--note <text>`: Persist a final context note to the configuration file.
+
+#### `progflow status`
+Retrieve the operational status of the active flow.
+- `--json`: Output status metadata in structured JSON format for programmatic ingestion.
+
+#### `progflow list`
+Enumerate all configured flows with liveness indicators.
+- `--json`: Output flow inventory in structured JSON format.
+
+#### `progflow new <name>`
+Initialize a new workspace flow configuration.
+- `--dir <path>`: Define the target working directory.
+- `--editor <cmd>`: Define the IDE invocation command.
+- `--urls <list>`: Comma-separated list of resources for browser invocation.
+- `--env <list>`: Comma-separated environment variables in `KEY=VALUE` format.
+- `--shell <path>`: Path to the preferred shell interpreter.
+- `--start-commands <json>`: Define background services via a JSON array.
+- `--cmd <cmd>`: Repeatable flag to define an additional start command.
+- `--cmd-dir <path>`: Repeatable flag to define the working directory for the corresponding `--cmd`.
+- `--cmd-bg <bool>`: Repeatable flag to define the detachment state for the corresponding `--cmd`.
+
+#### `progflow edit <name>`
+Modify an existing flow configuration.
+- Supports all flags available in `progflow new` for atomic updates to specific fields.
+- `--set-note <text>`: Programmatically update the persistent context note.
+
+#### `progflow note <name>`
+Inspect the last persisted context note for the specified flow.
+
+#### `progflow logs <name>`
+Inspect standard output and error streams of background services associated with the flow.
+
+#### `progflow delete <name>` (Alias: `remove`)
+Remove a flow configuration and its associated state.
+- `--force`: Suppress deletion confirmation prompt.
 
 ## Technical Logic and Implementation
 
