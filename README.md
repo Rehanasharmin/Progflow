@@ -1,29 +1,57 @@
-# Progflow - Context-Aware Workspace Manager
+# 🚀 Progflow: The Context-Aware Workspace Manager
 
-[![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange)](https://www.rust-lang.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](https://opensource.org/licenses/MIT)
+[![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange.svg?style=flat-square&logo=rust)](https://www.rust-lang.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Termux-lightgrey.svg?style=flat-square)](https://github.com/Rehanasharmin/Progflow)
 
-🌐 Website: [progflowcli.netlify.app](https://progflowcli.netlify.app)
+**Progflow** is a high-performance, context-aware productivity tool built in Rust. It automates your development environment by orchestrating editors, background services, and browser sessions into a single "flow." Switch between projects instantly without losing your mental state or manual configuration overhead.
 
-A powerful **CLI tool** for managing development workflows on Linux and Termux. Organize your projects, launch your editor and browsers instantly, and never lose track of your context.
+> "Stop setting up, start coding. Progflow remembers where you left off so you don't have to."
 
-**Use cases:** Workspace management, project switching, development environment automation, context notes, productivity tool for developers.
+---
 
-## What is it?
+## ✨ Key Features
 
-progflow is a powerful CLI tool that streamlines your development workflow by managing workspace configurations called "flows". Each flow encapsulates your project environment—launching your preferred editor, opening relevant URLs, and setting custom environment variables—everything you need to start working instantly.
+- **⚡ Instant Activation**: Launch your IDE, local dev servers, and documentation with one command.
+- **📝 Persistent Context Notes**: Save progress notes when stopping a flow; see them automatically when you return.
+- **🔄 Parallel Start Commands**: Run databases, builders, or watchers in the background and track their PIDs.
+- **🕵️ URL Readiness Check**: Automatically verifies local services (e.g., `localhost:3000`) before opening the browser.
+- **🖥️ OS-Aware Intelligence**: Tailored workflow tips for **Linux**, **macOS**, and **Termux**.
+- **📋 Integrated Logs**: Inspect the output of all background start commands with `progflow logs`.
+- **🤖 Automation First**: Full "one-liner" support with flags for all fields—perfect for CI/CD and AI agents.
 
-When you stop a flow, progflow automatically prompts you to save a context note, preserving your progress and thoughts for your next session. This makes it effortless to switch between projects without losing track of where you left off.
+---
 
-Whether you're managing multiple projects, diving into documentation, or tracking your debugging sessions, progflow keeps everything organized and accessible with a single command.
+## 📸 Terminal Experience
 
-## Installation
+### Starting a Flow
+```text
+$ progflow on my-project
+💡 Tip: Use 'progflow logs my-project' to see the output of your background start commands.
+✓ flow 'my-project' started — editor, 2 start commands, 3 urls
+Previous note: [2024-05-21 14:30] Finished the login API, need to start on auth middleware.
+```
 
+### Checking Status
+```text
+$ progflow status
+Active flow: my-project
+Running processes: 3
+Note saved: [2024-05-21 14:30] Finished the login API...
+```
+
+---
+
+## 🚀 Getting Started
+
+### Installation
+
+Install instantly via our optimized script:
 ```bash
 curl -sSL https://raw.githubusercontent.com/Rehanasharmin/Progflow/master/install.sh | bash
 ```
 
-Or build from source:
+Or build from source for maximum performance:
 ```bash
 git clone https://github.com/Rehanasharmin/Progflow.git
 cd Progflow
@@ -31,251 +59,86 @@ cargo build --release
 cp target/release/progflow ~/.local/bin/
 ```
 
-## Quick Start
+### Quick Commands
 
+| Command | Action |
+| :--- | :--- |
+| `progflow new <name>` | Scaffold a new workspace flow |
+| `progflow on <name>` | Activate your environment & background tasks |
+| `progflow status` | See active flow and running process count |
+| `progflow off` | Cleanly terminate processes & save a note |
+| `progflow logs <name>` | View logs from background services |
+| `progflow list` | List all flows with activity indicators |
+
+---
+
+## 💡 Why Progflow?
+
+### 1. Unified Development Environments
+Define your entire stack in a simple JSON config. Launch VS Code, a React dev server, and your PostgreSQL database simultaneously.
 ```bash
-# Interactive creation
-progflow new dev
-
-# Non-interactive / Scripted creation (New in 0.1.3!)
-progflow new dev --dir /home/you/projects/myapp --editor "code ." --urls "https://github.com" --quiet
-
-progflow on dev      # Start working
-progflow off dev    # Stop and save note (auto-skips note prompt if non-interactive)
-progflow list       # See all flows
-progflow note dev   # Read last note
+progflow new webapp --dir ~/code/webapp --editor "code ." --cmd "npm run dev" --urls "http://localhost:3000"
 ```
 
-## Use Cases
+### 2. Effortless Context Switching
+Switching from a backend bug to a frontend feature? `progflow off` kills the backend PIDs and saves your spot. `progflow on frontend` restores the new context instantly.
 
-### 1. Development Environment
-Create a flow for each project:
+### 3. Smarter Automation
+Designed for power users and AI agents. No interactive prompts required.
 ```bash
-progflow new backend
-# directory: /home/user/projects/api
-# editor: code .
-# URLs: http://localhost:3000, http://localhost:5432
-
-progflow on backend  # Opens editor, browser, docs all at once
+progflow new bot-flow --dir $(pwd) --env "API_KEY=secret" --quiet
 ```
 
-### 2. CI/CD or AI Agent Integration
-Automate workspace setup without prompts:
-```bash
-progflow new auto-flow --dir $(pwd) --editor "vim ." --quiet
-progflow on auto-flow --quiet
-# ... do work ...
-progflow edit auto-flow --set-note "Task completed by agent" --quiet
-progflow off auto-flow --force --quiet
-```
+---
 
-## Commands
+## 🛠️ Configuration Schema
 
-Progflow provides commands to manage your workspace flows:
-
-| Command | Description |
-|---------|-------------|
-| `progflow on <name>` | Activate a workspace flow |
-| `progflow off [name]` | Deactivate the current or specified flow |
-| `progflow list` | Display all configured flows |
-| `progflow new <name>` | Create a new flow (interactive or with flags) |
-| `progflow edit <name>` | Open config in $EDITOR or update via flags |
-| `progflow note <name>` | View the saved context note |
-| `progflow status` | Show active flow and last note |
-| `progflow delete <name>` | Delete a flow (with confirmation) |
-
-### Command Details
-
-#### `progflow on <name>`
-Activates a workspace flow by:
-- Verifying the configured directory exists
-- Spawning the specified editor in the background (detached from current session)
-- Opening all configured URLs in your default browser (Linux, macOS, or Termux)
-- Writing process IDs to a lockfile for cleanup
-- Displaying a summary of launched components (unless `--quiet` is used)
-
-#### `progflow off [name]`
-Deactivates a flow by:
-- Automatically detecting the active flow if no name provided
-- Reading process IDs from the lockfile
-- Sending SIGTERM, waiting 3s, then SIGKILL to all tracked processes
-- Prompting to save a context note (interactive mode only)
-- Cleaning up the lockfile
-
-#### `progflow new <name>`
-Creates a new flow. If flags are provided, it runs non-interactively:
-- `--dir <path>`: Working directory
-- `--editor <cmd>`: Editor command
-- `--urls <urls>`: Comma-separated URLs
-- `--env <vars>`: Comma-separated KEY=VALUE pairs
-- `--shell <path>`: Shell interpreter
-- `--quiet`: Suppress success message
-
-#### `progflow edit <name>`
-- Opens the configuration file in `$EDITOR`.
-- **New:** Use `--set-note "message"` to programmatically update the context note.
-
-#### `progflow note <name>`
-Displays the saved context note for a flow, or indicates "(no note saved)" if empty.
-
-## One-Liner Support
-
-Progflow is designed to be fully automatable. You can create, activate, and manage flows using single-line commands, which is perfect for AI agents and CI/CD pipelines.
-
-### Examples:
-
-**Create and start a flow in one go:**
-```bash
-progflow new myflow --dir $(pwd) --editor "code ." --quiet && progflow on myflow --quiet
-```
-
-**Update note and stop flow silently:**
-```bash
-progflow edit myflow --set-note "Finished feature X" --quiet && progflow off myflow --force --quiet
-```
-
-**Cleanup and delete:**
-```bash
-progflow off myflow --force --quiet && progflow delete myflow --force --quiet
-```
-
-Flows are stored in `~/.config/flow/<name>.json`:
+Flows are stored as human-readable JSON in `~/.config/flow/<name>.json`.
 
 ```json
 {
-  "name": "dev",
-  "directory": "/home/you/projects/myapp",
+  "name": "project-x",
+  "directory": "/home/user/dev/project-x",
   "editorCmd": "nvim .",
-  "urlList": ["https://github.com/user/myapp"],
-  "shell": "/bin/bash",
-  "env": {"NODE_ENV": "development"},
-  "note": ""
+  "urlList": ["https://github.com", "http://localhost:8080"],
+  "shell": "/bin/zsh",
+  "env": { "DEBUG": "true" },
+  "startCommands": [
+    { "command": "docker-compose up", "background": true },
+    { "command": "npm run watch", "background": true }
+  ],
+  "lastNote": "[2024-05-21] Refactored the core parser."
 }
 ```
 
-### Configuration Fields
+---
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | Unique identifier matching the filename |
-| `directory` | string | No | Working directory for spawned processes |
-| `editorCmd` | string | No | Command to launch your preferred editor |
-| `urlList` | array | No | List of URLs to open automatically |
-| `shell` | string | No | Shell interpreter (default: /bin/sh) |
-| `env` | object | No | Environment variables as key-value pairs |
-| `note` | string | No | Context note saved when stopping the flow |
+## 🐧 Platform Compatibility
 
-## Uninstall
-
-```bash
-curl -sSL https://raw.githubusercontent.com/Rehanasharmin/Progflow/master/uninstall.sh | bash
-```
+- **Linux**: Full support with `xdg-open` and desktop integration tips.
+- **macOS**: Native `open` command support and Automator/Shortcut tips.
+- **Termux**: Optimized for mobile dev with `termux-open-url` and `termux-boot` support.
 
 ---
 
-## For Developers
+## 🤝 Contributing
 
-### Overview
+Contributions are what make the open-source community an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-progflow is built in Rust with a focus on simplicity, performance, and portability. The architecture follows a modular design pattern with clear separation of concerns between CLI handling, configuration management, and platform-specific functionality.
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-### Requirements
+## 📄 License
 
-- **Rust 1.70+** - The Rust toolchain must be installed on your system
-- **Build tools** - `build-essential` on Debian/Ubuntu, or equivalent for your distribution
-- **Git** - For cloning the repository during installation
-
-### Building from Source
-
-Clone the repository and build the release binary:
-
-```bash
-git clone https://github.com/Rehanasharmin/Progflow.git
-cd Progflow
-cargo build --release
-```
-
-The compiled binary will be located at `target/release/progflow`.
-
-### Installing During Development
-
-For local testing and development:
-
-```bash
-# Copy to your local bin directory
-cp target/release/progflow ~/.local/bin/
-
-# Or add the binary to your PATH
-export PATH="$PWD:$PATH"
-```
-
-Verify the installation:
-
-```bash
-progflow --version
-progflow --help
-```
-
-### Project Architecture
-
-```
-src/
-├── main.rs          # CLI entry point using clap for argument parsing
-├── config.rs        # FlowConfig struct, file I/O, lockfile management
-├── error.rs         # Custom error types for robust error handling
-├── platform.rs      # Platform detection and URL opening utilities
-└── commands/
-    ├── mod.rs       # Command module exports
-    ├── on.rs        # Implementation of the 'on' command
-    ├── off.rs       # Implementation of the 'off' command
-    ├── list.rs      # Implementation of the 'list' command
-    ├── edit.rs      # Implementation of the 'edit' command
-    ├── new.rs       # Implementation of the 'new' command
-    └── note.rs      # Implementation of the 'note' command
-```
-
-### Design Philosophy
-
-- **No Async Runtime** - Uses blocking I/O throughout for minimal binary size and reduced complexity
-- **Zero Dependencies** - Single static binary with no runtime requirements beyond the standard library
-- **Cross-Platform** - Seamlessly works on Linux desktop and Termux on Android
-- **Portable** - Configuration stored in XDG-compliant directory (`~/.config/flow/`)
-
-### Platform Detection
-
-The tool automatically detects Termux environments by checking:
-1. The `$PREFIX` environment variable for `/data/data/com.termux`
-2. The presence of `termux-open-url` in PATH
-
-This enables Termux-specific URL opening behavior (using `termux-open-url` or `am start`) while defaulting to `xdg-open` on Linux systems.
-
-### Lockfile Mechanism
-
-When a flow is activated, process IDs are stored in `~/.config/flow/<name>.lock`. This enables proper cleanup when the flow is deactivated, ensuring no orphaned processes remain.
-
-### Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 1 | User error (invalid arguments, missing config) |
-| 2 | I/O or JSON parsing error |
-
-### Contributing
-
-Contributions are welcome! Please ensure:
-- Code follows Rust conventions and style
-- All tests pass before submitting pull requests
-- Binary builds without warnings on stable Rust
-
-### Documentation
-
-For detailed API documentation and advanced usage, visit: **[progflow Documentation](https://mintlify.wiki/Rehanasharmin/Progflow)**
-
-## License
-
-MIT License - See the LICENSE file for details.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-Built with Rust for performance and portability.
+<p align="center">
+  Built with ❤️ in Rust for developers who value their time.
+  <br>
+  <b><a href="https://progflowcli.netlify.app">Official Website</a></b> • <b><a href="https://github.com/Rehanasharmin/Progflow/issues">Report a Bug</a></b>
+</p>
