@@ -1,6 +1,7 @@
 pub mod delete;
 pub mod edit;
 pub mod list;
+pub mod logs;
 pub mod new;
 pub mod note;
 pub mod off;

@@ -348,3 +348,98 @@ fn test_status_shows_processes() {
         .output()
         .expect("Failed to execute command");
 }
+
+#[test]
+fn test_logs_command() {
+    let name = "test_logs";
+    let _ = fs::remove_file(
+        dirs::config_dir()
+            .unwrap()
+            .join("flow")
+            .join(format!("{}.json", name)),
+    );
+
+    // Create flow with a start command that echoes something
+    Command::new("target/release/progflow")
+        .args([
+            "new",
+            name,
+            "--cmd",
+            "echo 'hello logs'",
+            "--cmd-bg",
+            "true",
+        ])
+        .output()
+        .expect("Failed to execute command");
+
+    // Start flow
+    Command::new("target/release/progflow")
+        .args(["on", name])
+        .output()
+        .expect("Failed to execute command");
+
+    // Wait a bit for the command to finish and log
+    thread::sleep(Duration::from_millis(500));
+
+    // Check logs
+    let output = Command::new("target/release/progflow")
+        .args(["logs", name])
+        .output()
+        .expect("Failed to execute command");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("hello logs"));
+
+    // Cleanup
+    Command::new("target/release/progflow")
+        .args(["off", name])
+        .output()
+        .expect("Failed to execute command");
+
+    let config_path = dirs::config_dir()
+        .unwrap()
+        .join("flow")
+        .join(format!("{}.json", name));
+    let _ = fs::remove_file(config_path);
+}
+
+#[test]
+fn test_status_json() {
+    let name = "test_status_json";
+    let _ = fs::remove_file(
+        dirs::config_dir()
+            .unwrap()
+            .join("flow")
+            .join(format!("{}.json", name)),
+    );
+
+    Command::new("target/release/progflow")
+        .args(["new", name, "--dir", "/tmp"])
+        .output()
+        .expect("Failed to execute command");
+
+    Command::new("target/release/progflow")
+        .args(["on", name])
+        .output()
+        .expect("Failed to execute command");
+
+    let output = Command::new("target/release/progflow")
+        .args(["status", "--json"])
+        .output()
+        .expect("Failed to execute command");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\"active\": true"));
+    assert!(stdout.contains(&format!("\"name\": \"{}\"", name)));
+
+    Command::new("target/release/progflow")
+        .args(["off", name])
+        .output()
+        .expect("Failed to execute command");
+
+    let config_path = dirs::config_dir()
+        .unwrap()
+        .join("flow")
+        .join(format!("{}.json", name));
+    let _ = fs::remove_file(config_path);
+}

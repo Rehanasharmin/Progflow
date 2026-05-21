@@ -18,14 +18,13 @@ pub fn run(
     cmd_bgs: Vec<String>,
     quiet: bool,
 ) -> Result<(), AppError> {
-    let is_interactive = dir.is_none()
-        && editor.is_none()
-        && urls.is_none()
-        && env.is_none()
-        && shell.is_none()
-        && start_commands_json.is_none()
-        && cmds.is_empty()
-        && io::stdin().is_terminal();
+    let is_one_liner = dir.is_some()
+        || editor.is_some()
+        || urls.is_some()
+        || env.is_some()
+        || shell.is_some()
+        || start_commands_json.is_some()
+        || !cmds.is_empty();
 
     let mut config = FlowConfig {
         name: name.to_string(),
@@ -63,16 +62,22 @@ pub fn run(
                 background,
             });
         }
-    } else if is_interactive {
-        // Interactive mode
-        println!("Creating new flow: {}", name);
+    }
+
+    if !is_one_liner {
+        // Interactive mode (or piped input)
+        if io::stdin().is_terminal() && !quiet {
+            println!("Creating new flow: {}", name);
+        }
 
         let mut input_buf = String::new();
 
-        print!("Enter working directory [.] (or 'home'): ");
-        io::stdout()
-            .flush()
-            .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        if io::stdin().is_terminal() && !quiet {
+            print!("Enter working directory [.] (or 'home'): ");
+            io::stdout()
+                .flush()
+                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        }
         input_buf.clear();
         io::stdin()
             .read_line(&mut input_buf)
@@ -82,10 +87,12 @@ pub fn run(
             config.directory = Some(input.to_string());
         }
 
-        print!("Enter editor command (e.g. 'code .'): ");
-        io::stdout()
-            .flush()
-            .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        if io::stdin().is_terminal() && !quiet {
+            print!("Enter editor command (e.g. 'code .'): ");
+            io::stdout()
+                .flush()
+                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        }
         input_buf.clear();
         io::stdin()
             .read_line(&mut input_buf)
@@ -95,10 +102,12 @@ pub fn run(
             config.editor_cmd = Some(input.to_string());
         }
 
-        print!("Enter URLs (comma-separated): ");
-        io::stdout()
-            .flush()
-            .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        if io::stdin().is_terminal() && !quiet {
+            print!("Enter URLs (comma-separated): ");
+            io::stdout()
+                .flush()
+                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        }
         input_buf.clear();
         io::stdin()
             .read_line(&mut input_buf)
@@ -114,10 +123,12 @@ pub fn run(
             );
         }
 
-        print!("Enter shell (e.g., /bin/bash) [default /bin/sh]: ");
-        io::stdout()
-            .flush()
-            .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        if io::stdin().is_terminal() && !quiet {
+            print!("Enter shell (e.g., /bin/bash) [default /bin/sh]: ");
+            io::stdout()
+                .flush()
+                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        }
         input_buf.clear();
         io::stdin()
             .read_line(&mut input_buf)
@@ -127,10 +138,12 @@ pub fn run(
             config.shell = input.to_string();
         }
 
-        print!("Enter environment variables (KEY=value, comma-separated): ");
-        io::stdout()
-            .flush()
-            .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        if io::stdin().is_terminal() && !quiet {
+            print!("Enter environment variables (KEY=value, comma-separated): ");
+            io::stdout()
+                .flush()
+                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+        }
         input_buf.clear();
         io::stdin()
             .read_line(&mut input_buf)
@@ -147,32 +160,38 @@ pub fn run(
         }
 
         loop {
-            print!("Add a start command (y/n): ");
-            io::stdout()
-                .flush()
-                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+            if io::stdin().is_terminal() && !quiet {
+                print!("Add a start command (y/n): ");
+                io::stdout()
+                    .flush()
+                    .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+            }
             input_buf.clear();
-            io::stdin()
-                .read_line(&mut input_buf)
-                .map_err(|e| AppError::Io("stdin".to_string(), e))?;
+            if io::stdin().read_line(&mut input_buf).is_err() || input_buf.trim().is_empty() {
+                break;
+            }
             if input_buf.trim().to_lowercase() != "y" {
                 break;
             }
 
-            print!("  Command: ");
-            io::stdout()
-                .flush()
-                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+            if io::stdin().is_terminal() && !quiet {
+                print!("  Command: ");
+                io::stdout()
+                    .flush()
+                    .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+            }
             input_buf.clear();
             io::stdin()
                 .read_line(&mut input_buf)
                 .map_err(|e| AppError::Io("stdin".to_string(), e))?;
             let command = input_buf.trim().to_string();
 
-            print!("  Working directory (enter for flow dir, or 'home'): ");
-            io::stdout()
-                .flush()
-                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+            if io::stdin().is_terminal() && !quiet {
+                print!("  Working directory (enter for flow dir, or 'home'): ");
+                io::stdout()
+                    .flush()
+                    .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+            }
             input_buf.clear();
             io::stdin()
                 .read_line(&mut input_buf)
@@ -183,10 +202,12 @@ pub fn run(
                 Some(input_buf.trim().to_string())
             };
 
-            print!("  Run in background (y/n) [y]: ");
-            io::stdout()
-                .flush()
-                .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+            if io::stdin().is_terminal() && !quiet {
+                print!("  Run in background (y/n) [y]: ");
+                io::stdout()
+                    .flush()
+                    .map_err(|e| AppError::Io("stdout".to_string(), e))?;
+            }
             input_buf.clear();
             io::stdin()
                 .read_line(&mut input_buf)

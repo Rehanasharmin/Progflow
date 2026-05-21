@@ -86,17 +86,77 @@ impl FlowConfig {
 }
 
 fn is_valid_url(url: &str) -> bool {
+    let url = url.trim();
+    if url.is_empty() {
+        return false;
+    }
+
+    // Check if it's a local address/hostname with optional port
+    if url.starts_with("localhost") || url.starts_with("127.0.0.1") || url.starts_with("0.0.0.0") {
+        return true;
+    }
+
     if url.starts_with("http://")
         || url.starts_with("https://")
         || url.starts_with("file://")
         || url.starts_with("ftp://")
     {
-        return true;
+        let remainder = url.split("://").nth(1).unwrap_or("");
+        if remainder.is_empty() {
+            return false;
+        }
+        // Ensure there's a host (first part before / or :)
+        let host = remainder.split('/').next().unwrap_or("");
+        let host = host.split(':').next().unwrap_or("");
+        return !host.is_empty();
     }
-    if url.starts_with("localhost") || url.starts_with("127.0.0.1") || url.starts_with("0.0.0.0") {
-        return true;
-    }
+
     false
+}
+
+pub fn is_flow_active(name: &str) -> Result<bool, AppError> {
+    let lock_path = get_lock_path(name)?;
+    if !lock_path.exists() {
+        return Ok(false);
+    }
+
+    let lock = read_lock_file(name)?;
+    let mut any_alive = false;
+
+    for pid in &lock.pids {
+        let output = std::process::Command::new("kill")
+            .arg("-0")
+            .arg(pid.to_string())
+            .output();
+
+        if let Ok(out) = output {
+            if out.status.success() {
+                any_alive = true;
+                break;
+            }
+        }
+    }
+
+    if !any_alive {
+        // Stale lock file
+        let _ = delete_lock_file(name);
+        return Ok(false);
+    }
+
+    Ok(true)
+}
+
+pub fn get_log_dir() -> Result<PathBuf, AppError> {
+    let dir = dirs::config_dir()
+        .ok_or_else(|| AppError::User("Could not find config directory".to_string()))?
+        .join("flow")
+        .join("logs");
+    Ok(dir)
+}
+
+pub fn get_log_path(name: &str) -> Result<PathBuf, AppError> {
+    let dir = get_log_dir()?;
+    Ok(dir.join(format!("{}.log", name)))
 }
 
 pub fn get_config_dir() -> Result<PathBuf, AppError> {

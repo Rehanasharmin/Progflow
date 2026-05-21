@@ -1,13 +1,24 @@
 use std::io::{self, IsTerminal, Write};
 
-use crate::config::{delete_lock_file, get_config_path};
+use crate::config::{delete_lock_file, get_config_path, is_flow_active};
 use crate::error::AppError;
 
-pub fn run(name: &str, force: bool, quiet: bool) -> Result<(), AppError> {
+pub fn run(name: &str, force: bool, verbose: bool, quiet: bool) -> Result<(), AppError> {
     let config_path = get_config_path(name)?;
 
     if !config_path.exists() {
         return Err(AppError::User(format!("Flow '{}' does not exist", name)));
+    }
+
+    if is_flow_active(name)? && !force {
+        return Err(AppError::User(format!(
+            "Flow '{}' is currently active. Stop it first or use --force to delete anyway.",
+            name
+        )));
+    }
+
+    if verbose {
+        eprintln!("Deleting flow config: {}", config_path.display());
     }
 
     let is_interactive = io::stdin().is_terminal() && !force;

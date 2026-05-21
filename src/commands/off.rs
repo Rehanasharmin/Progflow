@@ -35,6 +35,17 @@ pub fn run(
     }
 
     for pid in &lock.pids {
+        let alive = Command::new("kill")
+            .arg("-0")
+            .arg(pid.to_string())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+
+        if !alive {
+            continue;
+        }
+
         if verbose {
             eprintln!("Sending SIGTERM to PID {}", pid);
         }
@@ -59,13 +70,14 @@ pub fn run(
     }
 
     for pid in &lock.pids {
-        let output = Command::new("kill")
+        let alive = Command::new("kill")
             .arg("-0")
             .arg(pid.to_string())
-            .output()
-            .map_err(|e| AppError::Io("kill".to_string(), e))?;
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
 
-        if output.status.success() {
+        if alive {
             if verbose {
                 eprintln!("Sending SIGKILL to PID {}", pid);
             }

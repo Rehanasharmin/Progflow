@@ -12,9 +12,17 @@ pub fn run(
     name: &str,
     skip_url_check: bool,
     edit_note: bool,
+    note_arg: Option<String>,
     verbose: bool,
     quiet: bool,
 ) -> Result<(), AppError> {
+    if crate::config::is_flow_active(name)? {
+        return Err(AppError::User(format!(
+            "Flow '{}' is already active. Stop it first with 'progflow off {}'",
+            name, name
+        )));
+    }
+
     let mut config = load_config(name)?;
 
     config.validate()?;
@@ -27,6 +35,14 @@ pub fn run(
                 &format!("Run 'progflow edit {}' to update the directory path", name),
             ));
         }
+    }
+
+    if let Some(note) = note_arg {
+        let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
+        let formatted_note = format!("[{}] {}", timestamp, note.trim());
+        config.note = formatted_note.clone();
+        config.last_note = Some(formatted_note);
+        save_config(&config)?;
     }
 
     if let Some(ref note) = config.last_note {
@@ -58,6 +74,7 @@ pub fn run(
             let new_note = std::fs::read_to_string(&temp_file)
                 .map_err(|e| AppError::Io(temp_file.display().to_string(), e))?;
             config.last_note = Some(new_note.trim().to_string());
+            config.note = config.last_note.as_ref().cloned().unwrap_or_default();
             save_config(&config)?;
         }
         let _ = std::fs::remove_file(temp_file);
@@ -93,14 +110,44 @@ pub fn run(
         match cmd.spawn() {
             Ok(child) => {
                 pids.push(child.id());
+                if verbose {
+                    eprintln!("Editor spawned with PID {}", child.id());
+                }
+
+                // Small delay to check for immediate failure
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                let alive = Command::new("kill")
+                    .arg("-0")
+                    .arg(child.id().to_string())
+                    .status()
+                    .map(|s| s.success())
+                    .unwrap_or(false);
+                if !alive && !quiet {
+                    println!(
+                        "Warning: Editor '{}' (PID {}) exited immediately.",
+                        editor_cmd,
+                        child.id()
+                    );
+                }
             }
             Err(e) => {
-                eprintln!("Warning: Failed to spawn editor '{}': {}", editor_cmd, e);
+                return Err(AppError::User(format!(
+                    "Failed to spawn editor '{}': {}. Check if the command exists and is in your PATH.",
+                    editor_cmd, e
+                )));
             }
         }
     }
 
     // Start commands
+    let log_path = crate::config::get_log_path(name)?;
+    let log_dir = crate::config::get_log_dir()?;
+    std::fs::create_dir_all(&log_dir)
+        .map_err(|e| AppError::Io(log_dir.display().to_string(), e))?;
+
+    // Clear log file on start
+    let _ = std::fs::File::create(&log_path);
+
     for start_cmd in &config.start_commands {
         if verbose {
             eprintln!("Running start command: {}", start_cmd.command);
@@ -117,8 +164,19 @@ pub fn run(
 
         if start_cmd.background {
             cmd.stdin(std::process::Stdio::null());
-            cmd.stdout(std::process::Stdio::null());
-            cmd.stderr(std::process::Stdio::null());
+
+            // Redirect output to log file
+            let log_file = std::fs::OpenOptions::new()
+                .append(true)
+                .open(&log_path)
+                .map_err(|e| AppError::Io(log_path.display().to_string(), e))?;
+            let log_file_err = std::fs::OpenOptions::new()
+                .append(true)
+                .open(&log_path)
+                .map_err(|e| AppError::Io(log_path.display().to_string(), e))?;
+
+            cmd.stdout(log_file);
+            cmd.stderr(log_file_err);
 
             #[cfg(unix)]
             {
@@ -137,12 +195,31 @@ pub fn run(
         match cmd.spawn() {
             Ok(child) => {
                 pids.push(child.id());
+                if verbose {
+                    eprintln!("Start command spawned with PID {}", child.id());
+                }
+
+                // Small delay to check for immediate failure
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                let alive = Command::new("kill")
+                    .arg("-0")
+                    .arg(child.id().to_string())
+                    .status()
+                    .map(|s| s.success())
+                    .unwrap_or(false);
+                if !alive && !quiet {
+                    println!(
+                        "Warning: Start command '{}' (PID {}) exited immediately.",
+                        start_cmd.command,
+                        child.id()
+                    );
+                }
             }
             Err(e) => {
-                eprintln!(
-                    "Warning: Failed to run start command '{}': {}",
+                return Err(AppError::User(format!(
+                    "Failed to run start command '{}': {}. Check if the command exists and is in your PATH.",
                     start_cmd.command, e
-                );
+                )));
             }
         }
     }

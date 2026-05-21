@@ -6,7 +6,7 @@ mod platform;
 use clap::{Parser, Subcommand};
 use std::process::ExitCode;
 
-use commands::{delete, edit, list, new, note, off, on, status};
+use commands::{delete, edit, list, logs, new, note, off, on, status};
 use error::AppError;
 
 #[derive(Parser)]
@@ -31,6 +31,8 @@ enum Commands {
         skip_url_check: bool,
         #[arg(long, help = "Edit context note")]
         edit_note: bool,
+        #[arg(long, help = "Set a context note")]
+        note: Option<String>,
     },
     #[command(about = "Deactivate current or named flow")]
     Off {
@@ -48,8 +50,20 @@ enum Commands {
     #[command(about = "Open the config file in $EDITOR or update it via flags")]
     Edit {
         name: String,
+        #[arg(long, help = "Working directory")]
+        dir: Option<String>,
+        #[arg(long, help = "Editor command")]
+        editor: Option<String>,
+        #[arg(long, help = "Comma-separated URLs")]
+        urls: Option<String>,
+        #[arg(long, help = "Comma-separated environment variables (KEY=VALUE)")]
+        env: Option<String>,
+        #[arg(long, help = "Shell path")]
+        shell: Option<String>,
         #[arg(long, help = "Set a note for the flow")]
         set_note: Option<String>,
+        #[arg(long, help = "Start commands as JSON string")]
+        start_commands: Option<String>,
     },
     #[command(about = "Scaffold a new flow config file")]
     New {
@@ -76,13 +90,18 @@ enum Commands {
     #[command(about = "Print the last saved context note for a flow")]
     Note { name: String },
     #[command(about = "Show status of active flow")]
-    Status,
+    Status {
+        #[arg(short, long, help = "Output as JSON")]
+        json: bool,
+    },
     #[command(about = "Delete a flow", alias = "remove")]
     Delete {
         name: String,
         #[arg(short, long, help = "Skip confirmation")]
         force: bool,
     },
+    #[command(about = "Show logs of start commands for a flow")]
+    Logs { name: String },
 }
 
 fn main() -> ExitCode {
@@ -93,12 +112,39 @@ fn main() -> ExitCode {
             name,
             skip_url_check,
             edit_note,
-        } => on::run(&name, skip_url_check, edit_note, cli.verbose, cli.quiet),
+            note,
+        } => on::run(
+            &name,
+            skip_url_check,
+            edit_note,
+            note,
+            cli.verbose,
+            cli.quiet,
+        ),
         Commands::Off { name, force, note } => {
             off::run(name.as_deref(), force, note, cli.verbose, cli.quiet)
         }
-        Commands::List { json } => list::run(json),
-        Commands::Edit { name, set_note } => edit::run(&name, set_note, cli.quiet),
+        Commands::List { json } => list::run(json, cli.verbose, cli.quiet),
+        Commands::Edit {
+            name,
+            dir,
+            editor,
+            urls,
+            env,
+            shell,
+            set_note,
+            start_commands,
+        } => edit::run(
+            &name,
+            dir,
+            editor,
+            urls,
+            env,
+            shell,
+            set_note,
+            start_commands,
+            cli.quiet,
+        ),
         Commands::New {
             name,
             dir,
@@ -123,9 +169,10 @@ fn main() -> ExitCode {
             cmd_bgs,
             cli.quiet,
         ),
-        Commands::Note { name } => note::run(&name),
-        Commands::Status => status::run(cli.verbose),
-        Commands::Delete { name, force } => delete::run(&name, force, cli.quiet),
+        Commands::Note { name } => note::run(&name, cli.verbose, cli.quiet),
+        Commands::Status { json } => status::run(json, cli.verbose, cli.quiet),
+        Commands::Delete { name, force } => delete::run(&name, force, cli.verbose, cli.quiet),
+        Commands::Logs { name } => logs::run(&name, cli.verbose, cli.quiet),
     };
 
     match result {
