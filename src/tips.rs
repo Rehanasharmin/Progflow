@@ -39,18 +39,23 @@ fn get_create_tips(os: &str) -> Vec<&str> {
         "Add multiple start commands to launch your database, dev server, and more at once!",
         "Use the --urls flag to provide a comma-separated list of URLs to open automatically.",
         "Keep your tool fresh! Run 'progflow update' periodically to get the latest features.",
+        "Pro Tip: You can group related projects into flows to launch entire stacks with one command.",
+        "Need consistent environments? Set common environment variables using the --env flag during creation.",
     ];
 
     match os {
         "linux" => {
             if is_termux() {
                 tips.push("In Termux, you can use 'termux-boot' to run progflow on startup.");
+                tips.push("Termux: Add aliases to your ~/.bashrc to launch flows even faster.");
             } else {
                 tips.push("Create a .desktop file to launch your favorite flow from your application menu.");
+                tips.push("Linux: You can use 'systemd --user' to manage background flows as persistent services.");
             }
         }
         "macos" => {
             tips.push("Use Automator to create a 'Quick Action' for this flow and assign it a global hotkey.");
+            tips.push("macOS: Use the 'Shortcuts' app to trigger flows based on location or time of day.");
         }
         _ => {}
     }
@@ -64,16 +69,21 @@ fn get_on_tips(os: &str) -> Vec<&str> {
         "Need to see what's running? 'progflow status' gives you a full breakdown.",
         "You can add a quick note to this session with 'progflow on <name> --note \"working on X\"'.",
         "New features are added regularly! Run 'progflow update' to stay current.",
+        "Automate everything: Add 'eval \"$(progflow aliases)\"' to your shell RC for project shortcuts.",
+        "Struggling with context? Check 'progflow note <name>' to see what you were doing last time.",
+        "Did you know? Progflow automatically verifies if your local dev servers are up before opening the browser.",
     ];
 
     match os {
         "linux" => {
             if !is_termux() {
                 tips.push("Linux Tip: Set a keyboard shortcut (like Ctrl+Alt+P) to quickly activate your main flow.");
+                tips.push("Advanced Linux: Use 'i3-msg' or 'wmctrl' in your start commands to auto-arrange windows.");
             }
         }
         "macos" => {
             tips.push("macOS Tip: You can run progflow commands directly from Raycast or Alfred for faster switching.");
+            tips.push("macOS: Use 'osascript' in start commands to automate complex UI interactions upon activation.");
         }
         _ => {}
     }
@@ -87,6 +97,8 @@ fn get_off_tips(os: &str) -> Vec<&str> {
         "Use 'progflow off --force' if you're in a hurry and want to skip the note prompt.",
         "Progflow sends SIGTERM then SIGKILL to ensure all your processes are cleaned up properly.",
         "Want the latest bug fixes? Run 'progflow update' before your next session.",
+        "Keep track of your productivity: Use 'progflow stats <name>' to see how long you worked.",
+        "Project finished? Use 'progflow delete <name>' to remove the configuration.",
     ];
 
     match os {

@@ -91,10 +91,13 @@ Inspect standard output and error streams of background services associated with
 Retrieve usage analytics, including total development time and session frequency.
 
 #### `progflow aliases`
-Generate a list of shell alias definitions for all configured flows.
+Generate POSIX-compliant shell alias definitions for all configured flows. This allows for instant project activation without typing the full command.
+
+**Automation**: To automatically load these aliases in every terminal session, add the following line to your shell profile (`.bashrc`, `.zshrc`, or `.profile`):
 ```bash
 eval "$(progflow aliases)"
 ```
+Once added, you can simply type `flow-<name>` (e.g., `flow-webapp`) to activate a project.
 
 #### `progflow update`
 Automatically update Progflow to the latest version from the source repository.
