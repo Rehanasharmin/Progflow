@@ -7,12 +7,12 @@ mod tips;
 use clap::{Parser, Subcommand};
 use std::process::ExitCode;
 
-use commands::{delete, edit, list, logs, new, note, off, on, status, update};
+use commands::{aliases, delete, edit, list, logs, matrix, new, note, off, on, status, update};
 use error::AppError;
 
 #[derive(Parser)]
 #[command(name = "progflow")]
-#[command(version = "0.1.3")]
+#[command(version = "0.1.4")]
 #[command(about = "A context-aware workspace manager for Linux", long_about = None)]
 struct Cli {
     #[command(subcommand)]
@@ -34,6 +34,8 @@ enum Commands {
         edit_note: bool,
         #[arg(long, help = "Set a context note")]
         note: Option<String>,
+        #[arg(short, long, help = "Auto-switch if another flow is active")]
+        switch: bool,
     },
     #[command(about = "Deactivate current or named flow")]
     Off {
@@ -105,6 +107,12 @@ enum Commands {
     Logs { name: String },
     #[command(about = "Update progflow to the latest version")]
     Update,
+    #[command(about = "Show analytics for a flow")]
+    Stats { name: String },
+    #[command(about = "Generate shell aliases for all flows")]
+    Aliases,
+    #[command(hide = true)]
+    Matrix,
 }
 
 fn main() -> ExitCode {
@@ -116,11 +124,13 @@ fn main() -> ExitCode {
             skip_url_check,
             edit_note,
             note,
+            switch,
         } => on::run(
             &name,
             skip_url_check,
             edit_note,
             note,
+            switch,
             cli.verbose,
             cli.quiet,
         ),
@@ -177,6 +187,9 @@ fn main() -> ExitCode {
         Commands::Delete { name, force } => delete::run(&name, force, cli.verbose, cli.quiet),
         Commands::Logs { name } => logs::run(&name, cli.verbose, cli.quiet),
         Commands::Update => update::run(cli.verbose, cli.quiet),
+        Commands::Stats { name } => commands::stats::run(&name),
+        Commands::Aliases => aliases::run(),
+        Commands::Matrix => matrix::run(),
     };
 
     match result {

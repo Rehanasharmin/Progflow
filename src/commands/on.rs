@@ -1,10 +1,11 @@
 use std::collections::HashMap;
+use std::io::{self, IsTerminal, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
 
-use crate::config::{load_config, save_config, write_lock_file};
+use crate::config::{find_active_flow, load_config, save_config, write_lock_file};
 use crate::error::AppError;
 use crate::platform::{get_editor, spawn_url};
 
@@ -13,14 +14,45 @@ pub fn run(
     skip_url_check: bool,
     edit_note: bool,
     note_arg: Option<String>,
+    switch: bool,
     verbose: bool,
     quiet: bool,
 ) -> Result<(), AppError> {
-    if crate::config::is_flow_active(name)? {
-        return Err(AppError::User(format!(
-            "Flow '{}' is already active. Stop it first with 'progflow off {}'",
-            name, name
-        )));
+    // Smart Switching Logic
+    if let Some(active) = find_active_flow()? {
+        if active == name {
+            if crate::config::is_flow_active(name)? {
+                return Err(AppError::User(format!(
+                    "Flow '{}' is already active. Stop it first with 'progflow off {}'",
+                    name, name
+                )));
+            }
+        } else {
+            // A different flow is active
+            let proceed = if switch {
+                true
+            } else if io::stdin().is_terminal() {
+                print!("Flow '{}' is active. Stop it and switch to '{}'? [y/N]: ", active, name);
+                io::stdout().flush().map_err(|e| AppError::Io("stdout".to_string(), e))?;
+                let mut answer = String::new();
+                io::stdin().read_line(&mut answer).map_err(|e| AppError::Io("stdin".to_string(), e))?;
+                answer.trim().to_lowercase() == "y"
+            } else {
+                false
+            };
+
+            if proceed {
+                if !quiet {
+                    println!("Stopping flow '{}'...", active);
+                }
+                crate::commands::off::run(Some(&active), true, None, verbose, quiet)?;
+            } else {
+                return Err(AppError::User(format!(
+                    "Another flow ('{}') is currently active. Use --switch to transition automatically.",
+                    active
+                )));
+            }
+        }
     }
 
     let mut config = load_config(name)?;
@@ -37,12 +69,15 @@ pub fn run(
         }
     }
 
+    // Analytics: Update last_activated
+    let now_iso = chrono::Local::now().to_rfc3339();
+    config.last_activated = Some(now_iso.clone());
+
     if let Some(note) = note_arg {
         let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
         let formatted_note = format!("[{}] {}", timestamp, note.trim());
         config.note = formatted_note.clone();
         config.last_note = Some(formatted_note);
-        save_config(&config)?;
     }
 
     if let Some(ref note) = config.last_note {
@@ -75,10 +110,12 @@ pub fn run(
                 .map_err(|e| AppError::Io(temp_file.display().to_string(), e))?;
             config.last_note = Some(new_note.trim().to_string());
             config.note = config.last_note.as_ref().cloned().unwrap_or_default();
-            save_config(&config)?;
         }
         let _ = std::fs::remove_file(temp_file);
     }
+
+    // Save analytics and note updates
+    save_config(&config)?;
 
     let mut pids: Vec<u32> = Vec::new();
 
@@ -241,7 +278,8 @@ pub fn run(
 
     let url_count = config.url_list.as_ref().map(|u| u.len()).unwrap_or(0);
 
-    write_lock_file(name, pids.clone())?;
+    // Record session start time for analytics
+    write_lock_file(name, pids.clone(), Some(now_iso))?;
 
     let mut parts: Vec<String> = vec![];
     if config.editor_cmd.is_some() {

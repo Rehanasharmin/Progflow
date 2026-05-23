@@ -148,7 +148,7 @@ fn test_start_commands_and_termination() {
 
     // Start flow
     let output = Command::new("target/release/progflow")
-        .args(["on", name])
+        .args(["on", name, "--switch"])
         .output()
         .expect("Failed to execute command");
     assert!(output.status.success());
@@ -205,7 +205,7 @@ fn test_persistent_notes() {
 
     // Start flow
     Command::new("target/release/progflow")
-        .args(["on", name])
+        .args(["on", name, "--switch"])
         .output()
         .expect("Failed to execute command");
 
@@ -218,7 +218,7 @@ fn test_persistent_notes() {
 
     // Start flow again and check if note is displayed
     let output = Command::new("target/release/progflow")
-        .args(["on", name])
+        .args(["on", name, "--switch"])
         .output()
         .expect("Failed to execute command");
     assert!(output.status.success());
@@ -252,7 +252,7 @@ fn test_url_readiness_check() {
 
     // Start flow and check for warning
     let output = Command::new("target/release/progflow")
-        .args(["on", name])
+        .args(["on", name, "--switch"])
         .output()
         .expect("Failed to execute command");
 
@@ -331,7 +331,7 @@ fn test_status_shows_processes() {
         .expect("Failed to execute command");
 
     Command::new("target/release/progflow")
-        .args(["on", name])
+        .args(["on", name, "--switch"])
         .output()
         .expect("Failed to execute command");
 
@@ -374,7 +374,7 @@ fn test_logs_command() {
 
     // Start flow
     Command::new("target/release/progflow")
-        .args(["on", name])
+        .args(["on", name, "--switch"])
         .output()
         .expect("Failed to execute command");
 
@@ -419,7 +419,7 @@ fn test_status_json() {
         .expect("Failed to execute command");
 
     Command::new("target/release/progflow")
-        .args(["on", name])
+        .args(["on", name, "--switch"])
         .output()
         .expect("Failed to execute command");
 

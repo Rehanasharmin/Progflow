@@ -41,6 +41,12 @@ pub struct FlowConfig {
     pub start_commands: Vec<StartCommand>,
     #[serde(default)]
     pub last_note: Option<String>,
+    #[serde(default)]
+    pub total_seconds: u64,
+    #[serde(default)]
+    pub session_count: u64,
+    #[serde(default)]
+    pub last_activated: Option<String>,
 }
 
 fn default_shell() -> String {
@@ -198,13 +204,15 @@ pub fn save_config(config: &FlowConfig) -> Result<(), AppError> {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LockFile {
     pub pids: Vec<u32>,
+    #[serde(default)]
+    pub start_time: Option<String>,
 }
 
-pub fn write_lock_file(name: &str, pids: Vec<u32>) -> Result<(), AppError> {
+pub fn write_lock_file(name: &str, pids: Vec<u32>, start_time: Option<String>) -> Result<(), AppError> {
     let dir = get_config_dir()?;
     fs::create_dir_all(&dir).map_err(|e| AppError::Io(dir.display().to_string(), e))?;
     let path = get_lock_path(name)?;
-    let lock = LockFile { pids };
+    let lock = LockFile { pids, start_time };
     let content =
         serde_json::to_string(&lock).map_err(|e| AppError::Json(path.display().to_string(), e))?;
     fs::write(&path, content).map_err(|e| AppError::Io(path.display().to_string(), e))?;

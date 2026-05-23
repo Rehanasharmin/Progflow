@@ -36,6 +36,9 @@ pub fn run(
         note: String::new(),
         start_commands: Vec::new(),
         last_note: None,
+        total_seconds: 0,
+        session_count: 0,
+        last_activated: None,
     };
 
     if let Some(env_str) = env {

@@ -30,6 +30,21 @@ pub fn run(
         Err(e) => return Err(e),
     };
 
+    // Analytics: Calculate session duration
+    if let Some(start_time_iso) = &lock.start_time {
+        if let Ok(start_time) = chrono::DateTime::parse_from_rfc3339(start_time_iso) {
+            let now = chrono::Local::now();
+            let duration = now.signed_duration_since(start_time);
+            let seconds = duration.num_seconds().max(0) as u64;
+
+            if let Ok(mut config) = load_config(&name) {
+                config.total_seconds += seconds;
+                config.session_count += 1;
+                let _ = save_config(&config);
+            }
+        }
+    }
+
     if verbose {
         eprintln!("Terminating {} processes", lock.pids.len());
     }

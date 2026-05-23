@@ -14,6 +14,8 @@ Progflow is architected as a modular, stateless CLI utility written in Rust. It 
 | **`config.rs`** | Data Abstraction | Handles JSON serialization via `serde`. Manages PID synchronization in `.lock` files. |
 | **`platform.rs`** | OS Abstraction | Normalizes cross-platform behavior for Linux, macOS, and Termux environments. |
 | **`tips.rs`** | User Intelligence | Selects contextual operational heuristics based on platform and event triggers. |
+| **`stats.rs`** | Analytics Logic | Computes session durations and aggregate usage telemetry. |
+| **`aliases.rs`** | Shell Integration | Generates POSIX-compliant shell aliases for flow orchestration. |
 | **`error.rs`** | Fault Management | Implements custom `AppError` enum with `std::fmt::Display` for consistent error reporting. |
 | **`commands/`** | Subcommand Logic | Discrete implementation modules for each atomic operation (`on`, `off`, `update`, etc.). |
 
@@ -26,23 +28,25 @@ Progflow manages the lifecycle of development environments through a determinist
 The activation sequence is designed to be atomic and failure-aware:
 
 1. **Mutual Exclusion Check**: Invokes `is_flow_active()`. If a lockfile exists, it performs a `kill -0` check on stored PIDs. Active PIDs trigger an immediate abort with a user-facing error to prevent concurrent instance conflicts.
-2. **Environment Ingestion**: Merges the global system environment with the flow's specific `env` HashMap.
-3. **Execution Context**: Changes the working directory to the flow's root. If unspecified, it defaults to the current directory of the caller.
-4. **Process Detachment**: 
+2. **Session Recording**: Captures the current timestamp (ISO 8601) and updates the `last_activated` field in the flow configuration.
+3. **Environment Ingestion**: Merges the global system environment with the flow's specific `env` HashMap.
+4. **Execution Context**: Changes the working directory to the flow's root. If unspecified, it defaults to the current directory of the caller.
+5. **Process Detachment**: 
    - IDEs and start commands are spawned using `sh -c`.
    - On Unix systems, `setsid()` is invoked via `pre_exec` to create a new session, effectively detaching the child process from the parent terminal.
    - For background processes, standard output and error streams are redirected to an append-only log file in `~/.config/flow/logs/<name>.log`.
-5. **Connectivity Verification**: Localhost/127.0.0.1 URLs undergo a `TcpStream::connect_timeout` check (3s). A failure does not block execution but generates a warning telemetry event.
-6. **PID Persistence**: Writes all successfully spawned PIDs to `~/.config/flow/<name>.lock`.
+6. **Connectivity Verification**: Localhost/127.0.0.1 URLs undergo a `TcpStream::connect_timeout` check (3s). A failure does not block execution but generates a warning telemetry event.
+7. **PID Persistence**: Writes all successfully spawned PIDs and the session start time to `~/.config/flow/<name>.lock`.
 
 ### Termination Workflow (`progflow off`)
 
-The termination sequence prioritizes graceful reclamation of resources:
+The termination sequence prioritizes graceful reclamation of resources and telemetry accuracy:
 
-1. **Signal Delivery (Phase 1)**: Iterates through PIDs in the lockfile and sends `SIGTERM`. This allows processes (like databases or complex servers) to perform cleanup or state persistence.
-2. **Latent Synchronization**: A 3-second thread sleep is implemented to allow processes time to respond to `SIGTERM`.
-3. **Forced Reclamation (Phase 2)**: Re-verifies PID liveness via `kill -0`. Remaining processes are sent `SIGKILL` to ensure complete termination.
-4. **State Finalization**: Captures context notes and persists them to the primary JSON configuration. Deletes the lockfile.
+1. **Duration Calculation**: Compares the current timestamp against the `start_time` stored in the lockfile. The delta is added to the flow's `total_seconds` and the `session_count` is incremented.
+2. **Signal Delivery (Phase 1)**: Iterates through PIDs in the lockfile and sends `SIGTERM`. This allows processes (like databases or complex servers) to perform cleanup or state persistence.
+3. **Latent Synchronization**: A 3-second thread sleep is implemented to allow processes time to respond to `SIGTERM`.
+4. **Forced Reclamation (Phase 2)**: Re-verifies PID liveness via `kill -0`. Remaining processes are sent `SIGKILL` to ensure complete termination.
+5. **State Finalization**: Captures context notes and persists them to the primary JSON configuration. Deletes the lockfile.
 
 ### Update Workflow (`progflow update`)
 

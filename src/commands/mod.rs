@@ -1,10 +1,13 @@
+pub mod aliases;
 pub mod delete;
 pub mod edit;
 pub mod list;
 pub mod logs;
+pub mod matrix;
 pub mod new;
 pub mod note;
 pub mod off;
 pub mod on;
+pub mod stats;
 pub mod status;
 pub mod update;

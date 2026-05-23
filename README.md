@@ -87,6 +87,15 @@ Inspect the last persisted context note for the specified flow.
 #### `progflow logs <name>`
 Inspect standard output and error streams of background services associated with the flow.
 
+#### `progflow stats <name>`
+Retrieve usage analytics, including total development time and session frequency.
+
+#### `progflow aliases`
+Generate a list of shell alias definitions for all configured flows.
+```bash
+eval "$(progflow aliases)"
+```
+
 #### `progflow update`
 Automatically update Progflow to the latest version from the source repository.
 ```bash
