@@ -32,10 +32,17 @@ pub fn run(
             let proceed = if switch {
                 true
             } else if io::stdin().is_terminal() {
-                print!("Flow '{}' is active. Stop it and switch to '{}'? [y/N]: ", active, name);
-                io::stdout().flush().map_err(|e| AppError::Io("stdout".to_string(), e))?;
+                print!(
+                    "Flow '{}' is active. Stop it and switch to '{}'? [y/N]: ",
+                    active, name
+                );
+                io::stdout()
+                    .flush()
+                    .map_err(|e| AppError::Io("stdout".to_string(), e))?;
                 let mut answer = String::new();
-                io::stdin().read_line(&mut answer).map_err(|e| AppError::Io("stdin".to_string(), e))?;
+                io::stdin()
+                    .read_line(&mut answer)
+                    .map_err(|e| AppError::Io("stdin".to_string(), e))?;
                 answer.trim().to_lowercase() == "y"
             } else {
                 false

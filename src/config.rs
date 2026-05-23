@@ -208,7 +208,11 @@ pub struct LockFile {
     pub start_time: Option<String>,
 }
 
-pub fn write_lock_file(name: &str, pids: Vec<u32>, start_time: Option<String>) -> Result<(), AppError> {
+pub fn write_lock_file(
+    name: &str,
+    pids: Vec<u32>,
+    start_time: Option<String>,
+) -> Result<(), AppError> {
     let dir = get_config_dir()?;
     fs::create_dir_all(&dir).map_err(|e| AppError::Io(dir.display().to_string(), e))?;
     let path = get_lock_path(name)?;

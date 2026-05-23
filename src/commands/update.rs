@@ -1,5 +1,5 @@
-use std::process::Command;
 use crate::error::AppError;
+use std::process::Command;
 
 pub fn run(_verbose: bool, quiet: bool) -> Result<(), AppError> {
     if !quiet {
