@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4] - 2026-05-23
+
+### Added
+- **Session Analytics**: Implemented `progflow stats <NAME>` to track total development time, average session duration, and usage frequency.
+- **Smart Flow Switching**: Added intelligent transition logic when starting a flow while another is active. Supported via `--switch` or `-s` flags.
+- **Shell Alias Generator**: Added `progflow aliases` command to generate POSIX shell shortcuts for all configured flows.
+- **Integrated Logging**: Redirected background process output to log files, accessible via the new `progflow logs <NAME>` command.
+- **Contextual Tips**: Added an OS-aware tip system (Linux, macOS, Termux) to suggest workflow improvements during flow events.
+- **Advanced CLI Flags**: 
+  - Added `--json` flag to `status` command for structured monitoring.
+  - Added `--note` flag to `on` command for transient context setting.
+  - Added `remove` as a direct alias for the `delete` command.
+- **Safety Locks**: Implemented checks to prevent double activation of the same flow and deletion of active flows without `--force`.
+
+### Improved
+- **Optimized Self-Update**: `progflow update` now performs a remote commit hash check to prevent redundant builds when already up-to-date.
+- **Robust Process Management**: Refined the `off` command to verify PID liveness before signal delivery, eliminating ghost process warnings.
+- **Telemetry Accuracy**: Session start times are now recorded in lockfiles to ensure precise duration calculation.
+- **Scripting Support**: Enhanced `new` command to fully support piped input in non-TTY environments.
+- **URL Validation**: Strengthened host and protocol verification for all workspace URLs.
+
+### Fixed
+- Fixed silent failure of start commands by adding immediate exit detection and reporting.
+- Resolved issue where active flows were not clearly indicated in the `list` command.
+
 ## [0.1.3] - 2026-05-11
 
 ### Added
