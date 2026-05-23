@@ -24,7 +24,7 @@ Progflow is a specialized command-line interface (CLI) utility developed in Rust
 
 ### Installation
 
-Deployment via the official installation script:
+Automatic installation script for linux and MacOS (Recommended):
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/Rehanasharmin/Progflow/master/install.sh | bash
