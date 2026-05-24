@@ -1,4 +1,5 @@
-## Progflow: Context-Aware Workspace Orchestration Utility
+## Progflow: Context-Aware Workspace Manager
+
 
 [Official Website](https://progflowcli.netlify.app)
 
