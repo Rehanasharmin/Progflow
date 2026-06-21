@@ -84,7 +84,9 @@ pub fn run(
 
     let status = Command::new("sh")
         .arg("-c")
-        .arg(format!("{} {}", editor, config_path.display()))
+        .arg(format!("{} \"$1\"", editor))
+        .arg("--")
+        .arg(config_path)
         .spawn()?
         .wait()
         .map_err(|e| AppError::Io("editor".to_string(), e))?;

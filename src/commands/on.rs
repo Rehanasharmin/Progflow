@@ -97,28 +97,32 @@ pub fn run(
         let editor = get_editor()
             .ok_or_else(|| AppError::User("No editor set. Set $EDITOR or $VISUAL".to_string()))?;
 
-        let temp_file = std::env::temp_dir().join(format!("progflow_note_{}.txt", name));
+        let mut temp_file = tempfile::NamedTempFile::new()
+            .map_err(|e| AppError::Io("temporary file".to_string(), e))?;
+
         if let Some(ref note) = config.last_note {
-            std::fs::write(&temp_file, note)
-                .map_err(|e| AppError::Io(temp_file.display().to_string(), e))?;
-        } else {
-            std::fs::write(&temp_file, "")
-                .map_err(|e| AppError::Io(temp_file.display().to_string(), e))?;
+            use std::io::Write;
+            temp_file
+                .write_all(note.as_bytes())
+                .map_err(|e| AppError::Io("temporary file".to_string(), e))?;
         }
 
         let status = Command::new("sh")
             .arg("-c")
-            .arg(format!("{} {}", editor, temp_file.display()))
-            .status()
+            .arg(format!("{} \"$1\"", editor))
+            .arg("--")
+            .arg(temp_file.path())
+            .spawn()
+            .map_err(|e| AppError::Io("editor".to_string(), e))?
+            .wait()
             .map_err(|e| AppError::Io("editor".to_string(), e))?;
 
         if status.success() {
-            let new_note = std::fs::read_to_string(&temp_file)
-                .map_err(|e| AppError::Io(temp_file.display().to_string(), e))?;
+            let new_note = std::fs::read_to_string(temp_file.path())
+                .map_err(|e| AppError::Io("temporary file".to_string(), e))?;
             config.last_note = Some(new_note.trim().to_string());
             config.note = config.last_note.as_ref().cloned().unwrap_or_default();
         }
-        let _ = std::fs::remove_file(temp_file);
     }
 
     // Save analytics and note updates
@@ -326,13 +330,20 @@ fn apply_env(cmd: &mut Command, env_vars: &HashMap<String, String>) {
 }
 
 fn check_url_ready(url: &str) {
-    if !url.contains("localhost") && !url.contains("127.0.0.1") && !url.contains("0.0.0.0") {
+    let url_lower = url.to_lowercase();
+    if !url_lower.contains("localhost")
+        && !url_lower.contains("127.0.0.1")
+        && !url_lower.contains("0.0.0.0")
+        && !url_lower.contains("[::1]")
+    {
         return;
     }
 
     let host_port = url
         .trim_start_matches("http://")
         .trim_start_matches("https://")
+        .trim_start_matches("HTTP://")
+        .trim_start_matches("HTTPS://")
         .split('/')
         .next()
         .unwrap_or("");
@@ -354,11 +365,17 @@ fn check_url_ready(url: &str) {
         )
     };
 
-    let ready = if let Ok(mut addrs) = addr.to_socket_addrs() {
-        addrs.any(|addr| TcpStream::connect_timeout(&addr, Duration::from_secs(3)).is_ok())
-    } else {
-        false
-    };
+    // Try a few times with short timeout
+    let mut ready = false;
+    for _ in 0..5 {
+        if let Ok(mut addrs) = addr.to_socket_addrs() {
+            if addrs.any(|addr| TcpStream::connect_timeout(&addr, Duration::from_secs(1)).is_ok()) {
+                ready = true;
+                break;
+            }
+        }
+        std::thread::sleep(Duration::from_millis(500));
+    }
 
     if !ready {
         println!(
