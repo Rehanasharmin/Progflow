@@ -130,15 +130,25 @@ pub fn is_flow_active(name: &str) -> Result<bool, AppError> {
     let mut any_alive = false;
 
     for pid in &lock.pids {
-        let output = std::process::Command::new("kill")
-            .arg("-0")
-            .arg(pid.to_string())
-            .output();
-
-        if let Ok(out) = output {
-            if out.status.success() {
+        #[cfg(unix)]
+        {
+            if unsafe { libc::kill(*pid as libc::pid_t, 0) == 0 } {
                 any_alive = true;
                 break;
+            }
+        }
+        #[cfg(not(unix))]
+        {
+            let output = std::process::Command::new("kill")
+                .arg("-0")
+                .arg(pid.to_string())
+                .output();
+
+            if let Ok(out) = output {
+                if out.status.success() {
+                    any_alive = true;
+                    break;
+                }
             }
         }
     }

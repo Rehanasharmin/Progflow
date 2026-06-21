@@ -1,4 +1,5 @@
 use std::io::{self, IsTerminal, Write};
+#[cfg(not(unix))]
 use std::process::Command;
 
 use crate::config::{delete_lock_file, find_active_flow, load_config, read_lock_file, save_config};
@@ -50,6 +51,9 @@ pub fn run(
     }
 
     for pid in &lock.pids {
+        #[cfg(unix)]
+        let alive = unsafe { libc::kill(*pid as libc::pid_t, 0) == 0 };
+        #[cfg(not(unix))]
         let alive = Command::new("kill")
             .arg("-0")
             .arg(pid.to_string())
@@ -64,18 +68,14 @@ pub fn run(
         if verbose {
             eprintln!("Sending SIGTERM to PID {}", pid);
         }
-        let output = Command::new("kill")
-            .arg(pid.to_string())
-            .output()
-            .map_err(|e| AppError::Io("kill".to_string(), e))?;
 
-        if !output.status.success() && verbose {
-            let err = String::from_utf8_lossy(&output.stderr);
-            eprintln!(
-                "Warning: Failed to terminate process {}: {}",
-                pid,
-                err.trim()
-            );
+        #[cfg(unix)]
+        unsafe {
+            libc::kill(*pid as libc::pid_t, libc::SIGTERM);
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = Command::new("kill").arg(pid.to_string()).output();
         }
     }
 
@@ -85,6 +85,9 @@ pub fn run(
     }
 
     for pid in &lock.pids {
+        #[cfg(unix)]
+        let alive = unsafe { libc::kill(*pid as libc::pid_t, 0) == 0 };
+        #[cfg(not(unix))]
         let alive = Command::new("kill")
             .arg("-0")
             .arg(pid.to_string())
@@ -96,7 +99,14 @@ pub fn run(
             if verbose {
                 eprintln!("Sending SIGKILL to PID {}", pid);
             }
-            let _ = Command::new("kill").arg("-9").arg(pid.to_string()).output();
+            #[cfg(unix)]
+            unsafe {
+                libc::kill(*pid as libc::pid_t, libc::SIGKILL);
+            }
+            #[cfg(not(unix))]
+            {
+                let _ = Command::new("kill").arg("-9").arg(pid.to_string()).output();
+            }
         }
     }
 
