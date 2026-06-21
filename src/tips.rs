@@ -24,12 +24,24 @@ fn select_random_tip(tips: Vec<&str>) -> Option<&str> {
     if tips.is_empty() {
         return None;
     }
-    // Simple pseudo-random using current time micros
+
+    // Better pseudo-randomness using more entropy
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_micros();
-    let index = (now % tips.len() as u128) as usize;
+        .unwrap_or_default();
+
+    let mut seed = now.as_nanos();
+
+    // Incorporate PID for more variance between concurrent runs
+    #[cfg(unix)]
+    {
+        seed ^= unsafe { libc::getpid() } as u128;
+    }
+
+    // Simple LCG to mix bits
+    seed = seed.wrapping_mul(0x517cc1b727220a95).wrapping_add(1);
+
+    let index = (seed % tips.len() as u128) as usize;
     Some(tips[index])
 }
 
@@ -41,6 +53,10 @@ fn get_create_tips(os: &str) -> Vec<&str> {
         "Keep your tool fresh! Run 'progflow update' periodically to get the latest features.",
         "Pro Tip: You can group related projects into flows to launch entire stacks with one command.",
         "Need consistent environments? Set common environment variables using the --env flag during creation.",
+        "Did you know? You can define start commands via a JSON string using the --start-commands flag.",
+        "Organization is key: Give your flows descriptive names like 'frontend-debug' or 'backend-release'.",
+        "Multiple commands? Use the --cmd flag multiple times during 'progflow new'.",
+        "Context matters: Add a meaningful working directory with --dir to keep your flow contained.",
     ];
 
     match os {
@@ -72,6 +88,11 @@ fn get_on_tips(os: &str) -> Vec<&str> {
         "Automate everything: Add 'eval \"$(progflow aliases)\"' to your shell RC for project shortcuts.",
         "Struggling with context? Check 'progflow note <name>' to see what you were doing last time.",
         "Did you know? Progflow automatically verifies if your local dev servers are up before opening the browser.",
+        "Instant access: Once you've loaded aliases, type 'flow-<name>' to activate a workspace.",
+        "Skip the wait: If you know your services are already running, use --skip-url-check.",
+        "Focus mode: Use 'progflow on <name> --edit-note' to quickly update your task before starting.",
+        "Switching flows? 'progflow on <name> --switch' will stop the current flow and start the new one automatically.",
+        "Keep track of time: Progflow logs how long you've been working on each flow.",
     ];
 
     match os {
@@ -99,6 +120,10 @@ fn get_off_tips(os: &str) -> Vec<&str> {
         "Want the latest bug fixes? Run 'progflow update' before your next session.",
         "Keep track of your productivity: Use 'progflow stats <name>' to see how long you worked.",
         "Project finished? Use 'progflow delete <name>' to remove the configuration.",
+        "Summarize your progress: Use 'progflow off --note \"finished auth module\"' to save a note on exit.",
+        "Did you know? 'progflow off' with no arguments stops the currently active flow.",
+        "Audit your sessions: 'progflow stats <name>' shows total development time and session count.",
+        "Clean workspace: Progflow logs for background processes are cleared each time you start a flow.",
     ];
 
     match os {
