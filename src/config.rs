@@ -59,9 +59,13 @@ impl FlowConfig {
             return Err(AppError::Config("Flow name cannot be empty".to_string()));
         }
 
-        if self.name.contains('/') || self.name.contains('\\') {
+        if self.name.contains('/')
+            || self.name.contains('\\')
+            || self.name.contains("..")
+            || self.name.starts_with('.')
+        {
             return Err(AppError::Config(
-                "Flow name cannot contain / or \\".to_string(),
+                "Invalid flow name: cannot contain path separators, '..', or start with '.'".to_string(),
             ));
         }
 
