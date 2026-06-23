@@ -164,6 +164,9 @@ pub fn run(
 
                 // Small delay to check for immediate failure
                 std::thread::sleep(std::time::Duration::from_millis(200));
+                #[cfg(unix)]
+                let alive = unsafe { libc::kill(child.id() as libc::pid_t, 0) == 0 };
+                #[cfg(not(unix))]
                 let alive = Command::new("kill")
                     .arg("-0")
                     .arg(child.id().to_string())
@@ -249,6 +252,9 @@ pub fn run(
 
                 // Small delay to check for immediate failure
                 std::thread::sleep(std::time::Duration::from_millis(200));
+                #[cfg(unix)]
+                let alive = unsafe { libc::kill(child.id() as libc::pid_t, 0) == 0 };
+                #[cfg(not(unix))]
                 let alive = Command::new("kill")
                     .arg("-0")
                     .arg(child.id().to_string())

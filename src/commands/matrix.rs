@@ -89,6 +89,18 @@ pub fn run() -> Result<(), AppError> {
 }
 
 fn get_terminal_size() -> Option<(usize, usize)> {
+    #[cfg(unix)]
+    {
+        use std::mem::MaybeUninit;
+        let mut sz = MaybeUninit::<libc::winsize>::uninit();
+        unsafe {
+            if libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, sz.as_mut_ptr()) == 0 {
+                let sz = sz.assume_init();
+                return Some((sz.ws_row as usize, sz.ws_col as usize));
+            }
+        }
+    }
+
     use std::process::Command;
     let output = Command::new("stty").arg("size").output().ok()?;
     if !output.status.success() {
