@@ -24,14 +24,14 @@ pub fn run(
         Ok(l) => l,
         Err(AppError::Io(_, e)) if e.kind() == io::ErrorKind::NotFound => {
             return Err(AppError::User(format!(
-                "No lock file found for flow '{}'",
+                "Flow '{}' doesn't seem to be running (no lock file)",
                 name
             )));
         }
         Err(e) => return Err(e),
     };
 
-    // Analytics: Calculate session duration
+    // Let's see how long this session lasted
     if let Some(start_time_iso) = &lock.start_time {
         if let Ok(start_time) = chrono::DateTime::parse_from_rfc3339(start_time_iso) {
             let now = chrono::Local::now();
@@ -79,7 +79,7 @@ pub fn run(
         }
     }
 
-    // Wait 3 seconds
+    // Give the processes a few seconds to shut down nicely
     if !lock.pids.is_empty() {
         std::thread::sleep(std::time::Duration::from_secs(3));
     }

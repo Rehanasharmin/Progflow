@@ -13,7 +13,7 @@ use error::AppError;
 #[derive(Parser)]
 #[command(name = "progflow")]
 #[command(version = "0.1.4")]
-#[command(about = "A context-aware workspace manager for Linux", long_about = None)]
+#[command(about = "A simple way to manage your project workspaces", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

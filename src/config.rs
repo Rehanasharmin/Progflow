@@ -158,7 +158,7 @@ pub fn is_flow_active(name: &str) -> Result<bool, AppError> {
     }
 
     if !any_alive {
-        // Stale lock file
+        // Looks like the processes died on their own, let's clean up the lock file
         let _ = delete_lock_file(name);
         return Ok(false);
     }
@@ -254,6 +254,7 @@ pub fn delete_lock_file(name: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+// Helper to find which flow was used most recently
 pub fn find_active_flow() -> Result<Option<String>, AppError> {
     let dir = get_config_dir()?;
     if !dir.exists() {
@@ -262,6 +263,7 @@ pub fn find_active_flow() -> Result<Option<String>, AppError> {
 
     let mut latest_mtime: Option<(std::time::SystemTime, String)> = None;
 
+    // Check all lock files to see which one is the newest
     for entry in fs::read_dir(&dir).map_err(|e| AppError::Io(dir.display().to_string(), e))? {
         let entry = entry.map_err(|e| AppError::Io(dir.display().to_string(), e))?;
         let path = entry.path();
