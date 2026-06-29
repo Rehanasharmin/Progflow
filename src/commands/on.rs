@@ -18,7 +18,7 @@ pub fn run(
     verbose: bool,
     quiet: bool,
 ) -> Result<(), AppError> {
-    // Smart Switching Logic
+    // If another flow is already running, we should handle that first
     if let Some(active) = find_active_flow()? {
         if active == name {
             if crate::config::is_flow_active(name)? {
@@ -76,7 +76,7 @@ pub fn run(
         }
     }
 
-    // Analytics: Update last_activated
+    // Record when we last started this flow
     let now_iso = chrono::Local::now().to_rfc3339();
     config.last_activated = Some(now_iso.clone());
 
@@ -162,7 +162,7 @@ pub fn run(
                     eprintln!("Editor spawned with PID {}", child.id());
                 }
 
-                // Small delay to check for immediate failure
+                // Wait a tiny bit to see if the editor crashes right away
                 std::thread::sleep(std::time::Duration::from_millis(200));
                 #[cfg(unix)]
                 let alive = unsafe { libc::kill(child.id() as libc::pid_t, 0) == 0 };
@@ -190,7 +190,7 @@ pub fn run(
         }
     }
 
-    // Start commands
+    // Time to run any background commands the user set up
     let log_path = crate::config::get_log_path(name)?;
     let log_dir = crate::config::get_log_dir()?;
     std::fs::create_dir_all(&log_dir)
@@ -295,7 +295,7 @@ pub fn run(
 
     let url_count = config.url_list.as_ref().map(|u| u.len()).unwrap_or(0);
 
-    // Record session start time for analytics
+    // Create a lock file so we know this flow is running
     write_lock_file(name, pids.clone(), Some(now_iso))?;
 
     let mut parts: Vec<String> = vec![];
