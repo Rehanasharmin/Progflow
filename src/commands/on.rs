@@ -136,7 +136,7 @@ pub fn run(
         if verbose {
             eprintln!("Spawning editor: {}", editor_cmd);
         }
-        let mut cmd = Command::new("sh");
+        let mut cmd = Command::new(&config.shell);
         cmd.arg("-c").arg(editor_cmd).current_dir(work_dir);
         cmd.stdin(std::process::Stdio::null());
         cmd.stdout(std::process::Stdio::null());
@@ -203,7 +203,7 @@ pub fn run(
         if verbose {
             eprintln!("Running start command: {}", start_cmd.command);
         }
-        let mut cmd = Command::new("sh");
+        let mut cmd = Command::new(&config.shell);
         cmd.arg("-c").arg(&start_cmd.command);
 
         let cmd_dir = match start_cmd.working_directory.as_deref() {
@@ -218,12 +218,12 @@ pub fn run(
 
             // Redirect output to log file
             let log_file = std::fs::OpenOptions::new()
+                .create(true)
                 .append(true)
                 .open(&log_path)
                 .map_err(|e| AppError::Io(log_path.display().to_string(), e))?;
-            let log_file_err = std::fs::OpenOptions::new()
-                .append(true)
-                .open(&log_path)
+            let log_file_err = log_file
+                .try_clone()
                 .map_err(|e| AppError::Io(log_path.display().to_string(), e))?;
 
             cmd.stdout(log_file);

@@ -50,7 +50,11 @@ pub struct FlowConfig {
 }
 
 fn default_shell() -> String {
-    "/bin/sh".to_string()
+    if crate::platform::is_termux() {
+        "/data/data/com.termux/files/usr/bin/sh".to_string()
+    } else {
+        "/bin/sh".to_string()
+    }
 }
 
 impl FlowConfig {
