@@ -90,10 +90,3 @@ Generates shell aliases.
 Updates Progflow.
 
 *   **What it does:** Checks for a newer version on GitHub and updates the tool if one is available.
-
-## Advanced Commands
-
-### `progflow matrix`
-System integrity check.
-
-*   **What it does:** Performs a deep scan of the environment and verifies system components. (This is an internal utility used for system validation.)
