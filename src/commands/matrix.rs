@@ -91,13 +91,50 @@ pub fn run() -> Result<(), AppError> {
     // Show cursor, reset colors, clear screen
     let _ = write!(stdout, "\x1b[?25h\x1b[0m\x1b[2J\x1b[H");
 
-    println!("\n[S]ystem integrity verified.");
+    let messages = vec![
+        vec![
+            "System integrity verified.",
+            "Environment stability: OPTIMAL",
+            "Context established.",
+            "Follow the white rabbit...",
+        ],
+        vec![
+            "You're doing great, you know that?",
+            "Code is looking clean today.",
+            "Take a deep breath. Focus.",
+            "Now, let's build something beautiful.",
+        ],
+        vec![
+            "The world is just data and logic.",
+            "You are the architect of your own reality.",
+            "Don't let the bugs get to you.",
+            "Stay hungry. Stay foolish.",
+        ],
+        vec![
+            "Sometimes the best code is no code at all.",
+            "Keep it simple. Keep it fast.",
+            "You've got this.",
+            "Wake up, developer...",
+        ],
+        vec![
+            "Connecting to the source...",
+            "Filtering the noise.",
+            "Your potential is infinite.",
+            "Go make a dent in the universe.",
+        ],
+    ];
+
+    let seed = rand_simple(0);
+    let set_idx = (seed % messages.len() as u32) as usize;
+    let selected_set = &messages[set_idx];
+
+    println!("\n[{}] {}", "S".to_string(), selected_set[0]);
     thread::sleep(Duration::from_millis(400));
-    println!("[E]nvironment stability: OPTIMAL");
+    println!("[{}] {}", "E".to_string(), selected_set[1]);
     thread::sleep(Duration::from_millis(400));
-    println!("[C]ontext established.");
+    println!("[{}] {}", "C".to_string(), selected_set[2]);
     thread::sleep(Duration::from_millis(600));
-    println!("\nFollow the white rabbit...");
+    println!("\n{}", selected_set[3]);
     thread::sleep(Duration::from_secs(2));
 
     Ok(())

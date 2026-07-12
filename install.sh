@@ -563,6 +563,48 @@ install() {
     else
         print_warning "Verification failed; please check manually."
     fi
+
+    # Optional Cleanup
+    echo -e "\n${YELLOW}------------------------------------------------------------${NC}"
+    echo -e "${YELLOW}           OPTIONAL: STORAGE OPTIMIZATION${NC}"
+    echo -e "${YELLOW}------------------------------------------------------------${NC}"
+    echo -e "Building $PROGRAM_NAME requires Rust and other dependencies"
+    echo -e "which can occupy significant disk space (up to 1GB+)."
+    echo -e "\nIf you want to save space, you can uninstall them now."
+    echo -e "${RED}CAUTION: Removing Rust will break 'progflow update'.${NC}"
+    echo -e "You will need to reinstall Rust manually to update later."
+    echo -e "${YELLOW}------------------------------------------------------------${NC}"
+
+    read -p "Uninstall build dependencies (Rust, etc.)? [y/N]: " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Attempting to remove build dependencies..."
+        if is_termux; then
+            pkg uninstall -y rust build-essential clang || true
+        elif is_macos; then
+            if command_exists brew; then
+                brew uninstall rust || true
+            fi
+        else
+            local installer
+            installer=$(get_installer_cmd)
+            if [ -n "$installer" ]; then
+                # Try to replace 'install' with 'remove' or 'uninstall'
+                local remove_cmd
+                remove_cmd=$(echo "$installer" | sed 's/install/remove/g' | sed 's/apt-get/apt-get purge/g' | sed 's/-S --noconfirm/-Rs --noconfirm/g')
+                $remove_cmd rust || true
+            fi
+        fi
+
+        # Also check for rustup
+        if command_exists rustup; then
+            rustup self uninstall -y || true
+        fi
+
+        print_success "Cleanup complete. Storage optimized."
+    else
+        print_info "Keeping build dependencies for future updates."
+    fi
 }
 
 uninstall() {
