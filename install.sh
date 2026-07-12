@@ -482,6 +482,8 @@ install() {
     local is_update_cmd="${1:-false}"
     
     print_info "Starting $PROGRAM_NAME installation..."
+    echo -e "${YELLOW}  [!] This might take a few minutes, maybe longer than you'd expect.${NC}"
+    echo -e "${YELLOW}      Building from source takes some time... stick with us.${NC}"
     
     if [ "$is_update_cmd" = "true" ]; then
         print_info "Checking for updates..."

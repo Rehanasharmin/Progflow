@@ -52,7 +52,10 @@ pub fn run(
 
     for pid in &lock.pids {
         #[cfg(unix)]
-        let alive = unsafe { libc::kill(*pid as libc::pid_t, 0) == 0 };
+        let alive = unsafe {
+            let res = libc::kill(*pid as libc::pid_t, 0);
+            res == 0 || (std::io::Error::last_os_error().raw_os_error().unwrap_or(0) != libc::ESRCH)
+        };
         #[cfg(not(unix))]
         let alive = Command::new("kill")
             .arg("-0")
@@ -86,7 +89,10 @@ pub fn run(
 
     for pid in &lock.pids {
         #[cfg(unix)]
-        let alive = unsafe { libc::kill(*pid as libc::pid_t, 0) == 0 };
+        let alive = unsafe {
+            let res = libc::kill(*pid as libc::pid_t, 0);
+            res == 0 || (std::io::Error::last_os_error().raw_os_error().unwrap_or(0) != libc::ESRCH)
+        };
         #[cfg(not(unix))]
         let alive = Command::new("kill")
             .arg("-0")

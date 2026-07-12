@@ -136,9 +136,18 @@ pub fn is_flow_active(name: &str) -> Result<bool, AppError> {
     for pid in &lock.pids {
         #[cfg(unix)]
         {
-            if unsafe { libc::kill(*pid as libc::pid_t, 0) == 0 } {
+            let res = unsafe { libc::kill(*pid as libc::pid_t, 0) };
+            if res == 0 {
                 any_alive = true;
                 break;
+            } else {
+                // If ESRCH is returned, the process definitely doesn't exist
+                let err = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
+                if err != libc::ESRCH {
+                    // For other errors (like EPERM), we assume the process might still be there
+                    any_alive = true;
+                    break;
+                }
             }
         }
         #[cfg(not(unix))]
@@ -254,7 +263,7 @@ pub fn delete_lock_file(name: &str) -> Result<(), AppError> {
     Ok(())
 }
 
-// Helper to find which flow was used most recently
+// Just a little helper to figure out which flow you were working on last
 pub fn find_active_flow() -> Result<Option<String>, AppError> {
     let dir = get_config_dir()?;
     if !dir.exists() {
