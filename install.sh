@@ -577,8 +577,7 @@ install() {
     echo -e "You will need to reinstall Rust manually to update later."
     echo -e "${YELLOW}------------------------------------------------------------${NC}"
 
-    read -p "Uninstall build dependencies (Rust, etc.)? [y/N]: " -n 1 -r
-    echo
+    read -p "Uninstall build dependencies (rust, etc.)? [y/N]: " REPLY
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         print_info "Attempting to remove build dependencies..."
         if is_termux; then

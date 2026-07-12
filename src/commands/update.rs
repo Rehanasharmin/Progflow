@@ -5,7 +5,7 @@ pub fn run(verbose: bool, quiet: bool) -> Result<(), AppError> {
     let current_version = env!("CARGO_PKG_VERSION");
 
     if !quiet {
-        println!("🚀 Checking for updates...");
+        println!("Checking for updates...");
         if verbose {
             println!("Current version: {}", current_version);
         }
@@ -36,14 +36,14 @@ pub fn run(verbose: bool, quiet: bool) -> Result<(), AppError> {
 
     if remote_version == current_version {
         if !quiet {
-            println!("✅ Progflow is already up to date (v{})!", current_version);
+            println!("Progflow is already up to date (v{})!", current_version);
         }
         return Ok(());
     }
 
     if !quiet {
-        println!("📦 A new version is available: v{} (current: v{})", remote_version, current_version);
-        println!("⌛ Initiating self-update...");
+        println!("A new version is available: v{} (current: v{})", remote_version, current_version);
+        println!("Initiating self-update...");
     }
 
     // Command to fetch and run the install script with 'update' argument
@@ -55,7 +55,7 @@ pub fn run(verbose: bool, quiet: bool) -> Result<(), AppError> {
 
     if status.success() {
         if !quiet {
-            println!("✅ Progflow has been successfully updated to v{}!", remote_version);
+            println!("Progflow has been successfully updated to v{}!", remote_version);
         }
         Ok(())
     } else {
