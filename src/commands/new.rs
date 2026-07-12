@@ -91,7 +91,7 @@ pub fn run(
         }
 
         if io::stdin().is_terminal() && !quiet {
-            print!("Enter editor command (e.g. 'code .'): ");
+            print!("Enter command to open your editor (e.g. 'code .'): ");
             io::stdout()
                 .flush()
                 .map_err(|e| AppError::Io("stdout".to_string(), e))?;

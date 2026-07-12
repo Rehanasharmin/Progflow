@@ -18,7 +18,7 @@ pub fn run(verbose: bool, quiet: bool) -> Result<(), AppError> {
         .map_err(|e| AppError::Io("fetching remote version".to_string(), e))?;
 
     if !remote_toml.status.success() {
-        return Err(AppError::User("Failed to fetch remote version information. Please check your internet connection.".to_string()));
+        return Err(AppError::User("Could not check for updates. Make sure you are connected to the internet.".to_string()));
     }
 
     let toml_content = String::from_utf8_lossy(&remote_toml.stdout);

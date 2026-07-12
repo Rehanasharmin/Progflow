@@ -322,7 +322,7 @@ pub fn run(
     };
 
     if !quiet {
-        println!("✓ flow '{}' started — {}", name, summary);
+        println!("✓ flow '{}' started: {}", name, summary);
         crate::tips::show_tip(crate::tips::TipEvent::On);
     }
 
