@@ -42,6 +42,26 @@ print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 print_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
 
+# ------------------------- Interactive Prompt Helper -------------------------
+# Works even when stdin is not a terminal (e.g., curl ... | bash)
+prompt_user() {
+    local prompt_msg="$1"
+    local default="${2:-n}"
+    local reply
+
+    if [ -t 0 ]; then
+        read -r -p "$prompt_msg" reply
+    elif [ -e /dev/tty ]; then
+        # Force reading from the controlling terminal
+        read -r -p "$prompt_msg" reply < /dev/tty 2>/dev/null || reply="$default"
+    else
+        reply="$default"
+    fi
+
+    # If reply is empty, use default
+    echo "${reply:-$default}"
+}
+
 # ------------------------- Enhanced Platform Detection -------------------------
 is_termux() {
     # Termux sets a specific PREFIX and provides termux-open-url
@@ -514,9 +534,8 @@ install() {
     existing_binary=$(find_existing_binary) || true
     if [ -n "$existing_binary" ] && [ "$FORCE_INSTALL" = false ]; then
         print_warning "$PROGRAM_NAME is already installed at $existing_binary"
-        read -p "Reinstall? [y/N]: " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        REPLY=$(prompt_user "Reinstall? [y/N]: " "n")
+        if [[ ! "${REPLY:0:1}" =~ ^[Yy]$ ]]; then
             print_info "Installation cancelled"
             exit 0
         fi
@@ -577,11 +596,7 @@ install() {
     echo -e "You will need to reinstall Rust manually to update later."
     echo -e "${YELLOW}------------------------------------------------------------${NC}"
 
-    if [ -t 0 ]; then
-    read -p "Uninstall build dependencies (rust, etc.)? [y/N]: " REPLY
-else
-    REPLY="n"   # safe default for non‑interactive (CI, curl | bash, etc.)
-fi
+    REPLY=$(prompt_user "Uninstall build dependencies (rust, etc.)? [y/N]: " "n")
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         print_info "Attempting to remove build dependencies..."
         if is_termux; then
@@ -624,9 +639,8 @@ uninstall() {
     done
     if [ -d "$CONFIG_DIR" ]; then
         print_warning "Config directory still exists: $CONFIG_DIR"
-        read -p "Remove it? [y/N]: " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
+        REPLY=$(prompt_user "Remove it? [y/N]: " "n")
+        if [[ "${REPLY:0:1}" =~ ^[Yy]$ ]]; then
             rm -rf "$CONFIG_DIR"
             print_info "Removed config directory"
         fi
