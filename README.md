@@ -38,6 +38,15 @@ cargo build --release
 cp target/release/progflow ~/.local/bin/
 ```
 
+## Documentation
+
+For more detailed information on how to use and contribute to Progflow, please refer to the following documents:
+
+- [Command Reference](COMMANDS.md): A complete guide to all Progflow commands and their flags.
+- [Installation Safety](INSTALL_SAFETY.md): An in-depth look at the security and operations of our installation script.
+- [Developer Guide](DEVELOPER.md): Technical details on the architecture and internal logic for those who want to contribute.
+- [Contributing](CONTRIBUTORS.md): Guidelines on how to get involved and help improve the project.
+
 ## Usage Guide
 
 ### Activating a Flow
