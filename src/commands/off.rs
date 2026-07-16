@@ -53,7 +53,8 @@ pub fn run(
     for pid in &lock.pids {
         #[cfg(unix)]
         let alive = unsafe {
-            let res = libc::kill(*pid as libc::pid_t, 0);
+            let pgid = -(*pid as libc::pid_t);
+            let res = libc::kill(pgid, 0);
             res == 0 || (std::io::Error::last_os_error().raw_os_error().unwrap_or(0) != libc::ESRCH)
         };
         #[cfg(not(unix))]
@@ -69,12 +70,13 @@ pub fn run(
         }
 
         if verbose {
-            eprintln!("Sending SIGTERM to PID {}", pid);
+            eprintln!("Sending SIGTERM to PGID {}", pid);
         }
 
         #[cfg(unix)]
         unsafe {
-            libc::kill(*pid as libc::pid_t, libc::SIGTERM);
+            let pgid = -(*pid as libc::pid_t);
+            libc::kill(pgid, libc::SIGTERM);
         }
         #[cfg(not(unix))]
         {
@@ -90,7 +92,8 @@ pub fn run(
     for pid in &lock.pids {
         #[cfg(unix)]
         let alive = unsafe {
-            let res = libc::kill(*pid as libc::pid_t, 0);
+            let pgid = -(*pid as libc::pid_t);
+            let res = libc::kill(pgid, 0);
             res == 0 || (std::io::Error::last_os_error().raw_os_error().unwrap_or(0) != libc::ESRCH)
         };
         #[cfg(not(unix))]
@@ -103,11 +106,12 @@ pub fn run(
 
         if alive {
             if verbose {
-                eprintln!("Sending SIGKILL to PID {}", pid);
+                eprintln!("Sending SIGKILL to PGID {}", pid);
             }
             #[cfg(unix)]
             unsafe {
-                libc::kill(*pid as libc::pid_t, libc::SIGKILL);
+                let pgid = -(*pid as libc::pid_t);
+                libc::kill(pgid, libc::SIGKILL);
             }
             #[cfg(not(unix))]
             {
