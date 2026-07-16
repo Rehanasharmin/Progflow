@@ -18,16 +18,18 @@ pub fn run(
     verbose: bool,
     quiet: bool,
 ) -> Result<(), AppError> {
-    // If another flow is already running, we should handle that first
+    // First, check if THIS specific flow is already running.
+    // We do this independently of find_active_flow() to ensure no duplicates.
+    if crate::config::is_flow_active(name)? {
+        return Err(AppError::User(format!(
+            "Flow '{}' is already active. Stop it first with 'progflow off {}'",
+            name, name
+        )));
+    }
+
+    // Now check for any other active flow for smart switching
     if let Some(active) = find_active_flow()? {
-        if active == name {
-            if crate::config::is_flow_active(name)? {
-                return Err(AppError::User(format!(
-                    "Flow '{}' is already active. Stop it first with 'progflow off {}'",
-                    name, name
-                )));
-            }
-        } else {
+        if active != name {
             // A different flow is active
             let proceed = if switch {
                 true

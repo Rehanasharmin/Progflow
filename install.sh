@@ -482,8 +482,13 @@ install() {
     local is_update_cmd="${1:-false}"
     
     print_info "Starting $PROGRAM_NAME installation..."
-    echo -e "${YELLOW}  [!] This might take a few minutes, maybe longer than you'd expect.${NC}"
-    echo -e "${YELLOW}      Building from source takes some time... stick with us.${NC}"
+    echo -e "${YELLOW}"
+    echo -e "  [!] This will take some time. Maybe longer than expected."
+    echo -e "      /\\"
+    echo -e "     /  \\"
+    echo -e "    / !! \\"
+    echo -e "   /______\\"
+    echo -e "${NC}"
     
     if [ "$is_update_cmd" = "true" ]; then
         print_info "Checking for updates..."
@@ -577,7 +582,13 @@ install() {
     echo -e "You will need to reinstall Rust manually to update later."
     echo -e "${YELLOW}------------------------------------------------------------${NC}"
 
-    read -p "Uninstall build dependencies (rust, etc.)? [y/N]: " REPLY
+    # Read from /dev/tty to ensure it works even when piped (e.g. curl | bash)
+    if [ -t 0 ]; then
+        read -p "Uninstall build dependencies (rust, etc.)? [y/N]: " REPLY
+    else
+        echo -n "Uninstall build dependencies (rust, etc.)? [y/N]: "
+        read REPLY < /dev/tty || REPLY="n"
+    fi
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         print_info "Attempting to remove build dependencies..."
         if is_termux; then

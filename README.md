@@ -15,7 +15,7 @@ Progflow is a powerful command-line interface utility built in rust, designed to
 *   **Smart Service Management**: Run multiple background processes in parallel with automatic lifecycle management and logging.
 *   **Service Readiness Detection**: Progflow checks if your local servers are actually listening before attempting to open them in your browser.
 *   **Cross-Platform Support**: Optimized for Linux, macOS, and Termux (Android) environments.
-*   **Advanced Automation**: Full CLI support for non-interactive scripts and CI/CD pipelines.
+*   **Advanced Automation**: Full CLI support for non-interactive scripts and CI-CD pipelines.
 
 ## Getting Started
 
@@ -85,7 +85,7 @@ For maximum speed, you can generate shell aliases for all your flows:
 ```bash
 eval "$(progflow aliases)"
 ```
-Add this to your `.bashrc` or `.zshrc` to activate projects using `flow-<name>`.
+Add this to your .bashrc or .zshrc to activate projects using flow-<name>.
 
 ## Technical Details
 
@@ -93,7 +93,7 @@ Progflow is designed for reliability and safety:
 
 *   **Conflict Prevention**: Uses a locking mechanism to prevent multiple instances of the same flow from running simultaneously.
 *   **Graceful Termination**: Background processes are managed through a tiered sequence, starting with SIGTERM and escalating to SIGKILL only if necessary.
-*   **Privacy and Portability**: Configurations are stored as simple JSON files in `~/.config/flow/`, making them easy to back up or sync.
+*   **Privacy and Portability**: Configurations are stored as simple JSON files in ~/.config/flow/, making them easy to back up or sync.
 
 ## License
 

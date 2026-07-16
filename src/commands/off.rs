@@ -47,13 +47,14 @@ pub fn run(
     }
 
     if verbose {
-        eprintln!("Terminating {} processes", lock.pids.len());
+        eprintln!("Terminating {} process groups", lock.pids.len());
     }
 
     for pid in &lock.pids {
         #[cfg(unix)]
         let alive = unsafe {
-            let res = libc::kill(*pid as libc::pid_t, 0);
+            // Signal 0 checks if the process group exists
+            let res = libc::kill(-(*pid as libc::pid_t), 0);
             res == 0 || (std::io::Error::last_os_error().raw_os_error().unwrap_or(0) != libc::ESRCH)
         };
         #[cfg(not(unix))]
@@ -69,12 +70,14 @@ pub fn run(
         }
 
         if verbose {
-            eprintln!("Sending SIGTERM to PID {}", pid);
+            eprintln!("Sending SIGTERM to process group {}", pid);
         }
 
         #[cfg(unix)]
         unsafe {
-            libc::kill(*pid as libc::pid_t, libc::SIGTERM);
+            // Since we use setsid(), the PID is also the PGID.
+            // kill(-pid) sends the signal to the entire process group.
+            libc::kill(-(*pid as libc::pid_t), libc::SIGTERM);
         }
         #[cfg(not(unix))]
         {
@@ -90,7 +93,7 @@ pub fn run(
     for pid in &lock.pids {
         #[cfg(unix)]
         let alive = unsafe {
-            let res = libc::kill(*pid as libc::pid_t, 0);
+            let res = libc::kill(-(*pid as libc::pid_t), 0);
             res == 0 || (std::io::Error::last_os_error().raw_os_error().unwrap_or(0) != libc::ESRCH)
         };
         #[cfg(not(unix))]
@@ -103,11 +106,11 @@ pub fn run(
 
         if alive {
             if verbose {
-                eprintln!("Sending SIGKILL to PID {}", pid);
+                eprintln!("Sending SIGKILL to process group {}", pid);
             }
             #[cfg(unix)]
             unsafe {
-                libc::kill(*pid as libc::pid_t, libc::SIGKILL);
+                libc::kill(-(*pid as libc::pid_t), libc::SIGKILL);
             }
             #[cfg(not(unix))]
             {

@@ -140,15 +140,14 @@ pub fn is_flow_active(name: &str) -> Result<bool, AppError> {
     for pid in &lock.pids {
         #[cfg(unix)]
         {
-            let res = unsafe { libc::kill(*pid as libc::pid_t, 0) };
+            // We check the entire process group since we use setsid()
+            let res = unsafe { libc::kill(-(*pid as libc::pid_t), 0) };
             if res == 0 {
                 any_alive = true;
                 break;
             } else {
-                // If ESRCH is returned, the process definitely doesn't exist
                 let err = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
                 if err != libc::ESRCH {
-                    // For other errors (like EPERM), we assume the process might still be there
                     any_alive = true;
                     break;
                 }
@@ -193,8 +192,15 @@ pub fn get_log_path(name: &str) -> Result<PathBuf, AppError> {
 }
 
 pub fn get_config_dir() -> Result<PathBuf, AppError> {
-    let dir = dirs::config_dir()
-        .ok_or_else(|| AppError::User("Could not find config directory".to_string()))?
+    // Termux handles config directories differently, so we use a standard location there.
+    let base = if crate::platform::is_termux() {
+        dirs::home_dir().map(|h| h.join(".config"))
+    } else {
+        dirs::config_dir()
+    };
+
+    let dir = base
+        .ok_or_else(|| AppError::User("Could not find a place to save configuration".to_string()))?
         .join("flow");
     Ok(dir)
 }
