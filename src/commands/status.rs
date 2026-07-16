@@ -1,6 +1,26 @@
 use crate::config::{find_active_flow, load_config, read_lock_file};
 use crate::error::AppError;
+#[cfg(not(unix))]
 use std::process::Command;
+
+#[cfg(unix)]
+fn is_process_group_alive(pid: u32) -> bool {
+    unsafe {
+        let pgid = -(pid as libc::pid_t);
+        let res = libc::kill(pgid, 0);
+        res == 0 || (std::io::Error::last_os_error().raw_os_error().unwrap_or(0) != libc::ESRCH)
+    }
+}
+
+#[cfg(not(unix))]
+fn is_process_group_alive(pid: u32) -> bool {
+    Command::new("kill")
+        .arg("-0")
+        .arg(pid.to_string())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
 
 pub fn run(json_output: bool, verbose: bool, quiet: bool) -> Result<(), AppError> {
     let active_flow = find_active_flow()?;
@@ -13,11 +33,8 @@ pub fn run(json_output: bool, verbose: bool, quiet: bool) -> Result<(), AppError
                 if let Ok(lock) = read_lock_file(&name) {
                     pids = lock.pids.clone();
                     for pid in &lock.pids {
-                        let output = Command::new("kill").arg("-0").arg(pid.to_string()).output();
-                        if let Ok(out) = output {
-                            if out.status.success() {
-                                running_count += 1;
-                            }
+                        if is_process_group_alive(*pid) {
+                            running_count += 1;
                         }
                     }
                 }
@@ -48,12 +65,8 @@ pub fn run(json_output: bool, verbose: bool, quiet: bool) -> Result<(), AppError
             if let Ok(lock) = read_lock_file(&name) {
                 let mut running_count = 0;
                 for pid in &lock.pids {
-                    let output = Command::new("kill").arg("-0").arg(pid.to_string()).output();
-
-                    if let Ok(out) = output {
-                        if out.status.success() {
-                            running_count += 1;
-                        }
+                    if is_process_group_alive(*pid) {
+                        running_count += 1;
                     }
                 }
                 if !quiet {

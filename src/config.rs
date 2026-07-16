@@ -140,7 +140,8 @@ pub fn is_flow_active(name: &str) -> Result<bool, AppError> {
     for pid in &lock.pids {
         #[cfg(unix)]
         {
-            let res = unsafe { libc::kill(*pid as libc::pid_t, 0) };
+            let pgid = -(*pid as libc::pid_t);
+            let res = unsafe { libc::kill(pgid, 0) };
             if res == 0 {
                 any_alive = true;
                 break;
