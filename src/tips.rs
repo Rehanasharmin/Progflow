@@ -81,6 +81,7 @@ fn get_create_tips(os: &str) -> Vec<&str> {
 
 fn get_on_tips(os: &str) -> Vec<&str> {
     let mut tips = vec![
+        "Debugging tip: Run with the --verbose flag to see extra output, including exact commands and PIDs.",
         "Use 'progflow logs <name>' to see the output of your background start commands.",
         "Need to see what's running? 'progflow status' gives you a full breakdown.",
         "You can add a quick note to this session with 'progflow on <name> --note \"working on X\"'.",
